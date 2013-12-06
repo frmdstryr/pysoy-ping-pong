@@ -1,0 +1,44 @@
+# PySoy _datatypes.Datatype class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Datatype.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+# The only purpose of this class is to provide functions to other datatypes
+
+cdef class Datatype :
+  '''soy._datatypes.Datatype
+
+    This is not useful to you.  It provides C functions to other datatypes.
+  '''
+
+  ############################################################################
+  #
+  # General C functions
+  #
+
+  cdef void *_alloc(self, int num, int* m, void* store, int size) :
+    if num == 0 :
+      m[0] = 0
+      py.PyMem_Free(store)
+      return NULL
+    if m[0] == 0 :
+      m[0] = num + 15
+      return py.PyMem_Malloc(m[0] * size)
+    if num > m[0] or num+120 < m[0] :
+      m[0] = num + 15
+      return py.PyMem_Realloc(store, m[0] * size)
+    return store

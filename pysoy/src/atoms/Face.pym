@@ -1,0 +1,230 @@
+# PySoy's atoms.Face class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Face.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Face :
+  '''soy.atoms.Face
+
+    An element of FaceList with .verts property
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+
+  def __cinit__(self, soy.models.Mesh mesh,
+                verts=None, material=None,
+                index=-1, *args, **keywords) :
+    cdef int i, _mindex
+    self._index = -1
+    self._list = mesh._faces
+    self._mutex = mesh._mutex
+    
+    if index >= 0 :
+      # For an instance of an existing face
+      if index >= self._list._arraySize :
+        raise ValueError('index out of range')
+      self._list._children._append(<void*> self)
+      self._index = index
+    else :
+      # For a brand new face
+      if not (verts and material) :
+        raise TypeError('must provide verticies and material for a new Face')
+      if not isinstance(material, soy.materials.Material) :
+        raise TypeError('material must be of type soy.materials.Material')
+      py.PyThread_acquire_lock(self._mutex, 1)
+      self._list._children._append(<void*> self)
+      self._list._allocArray(self._list._arraySize + 1)
+      _mindex = mesh._mates._children._index(<void*> material)
+      if _mindex == -1 :
+        #
+        # New material, add face to end of array
+        self._index = self._list._arraySize
+        _mindex = mesh._mates._children._current
+        mesh._mates._children._append(<void*> material)
+        if (<soy.materials.Material> material)._needsTSLVs() :
+          mesh._mates._hasBumps = mesh._mates._hasBumps + 1
+        py.Py_INCREF(material)
+        mesh._mates._allocRanges(mesh._mates._children._current)
+        mesh._mates._ranges[_mindex].offset = self._index
+        mesh._mates._ranges[_mindex].length = 1
+        self._list._arraySize = self._list._arraySize + 1
+        self._list._flagUpdated(self._index, 1)
+        #
+      else :
+        #
+        # Existing material, insert face into center of array
+        self._index = mesh._mates._ranges[_mindex].offset + \
+                      mesh._mates._ranges[_mindex].length
+        mesh._mates._ranges[_mindex].length = \
+          mesh._mates._ranges[_mindex].length + 1
+        for i from self._list._arraySize > i >= self._index :
+          self._list._array[i+1] = self._list._array[i]
+        for i from _mindex < i < mesh._mates._children._current :
+          mesh._mates._ranges[i].offset = mesh._mates._ranges[i].offset + 1
+        self._list._arraySize = self._list._arraySize + 1
+        self._list._flagUpdated(self._index, self._list._arraySize-self._index)
+        #
+      py.PyThread_release_lock(self._mutex)
+      self.verts = verts
+
+
+  def __dealloc__(self) :
+    if self._index >= 0 :
+      self._list._children._remove(<void*> self)
+
+
+  def __repr__(self) :
+    return '<%s>' % self.__class__.__name__
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+
+  property verts :
+    def __get__(self) :
+      cdef float a, b, c
+      cdef object t
+      cdef soy._datatypes.VertexList _verts
+      _verts = (<soy.models.Mesh> self._list._mesh)._verts
+      py.PyThread_acquire_lock(self._mutex, 1)
+      t = (_verts[self._list._array[self._index].a],
+           _verts[self._list._array[self._index].b],
+           _verts[self._list._array[self._index].c])
+      py.PyThread_release_lock(self._mutex)      
+      return t
+
+    def __set__(self, value) :
+      cdef int i
+      if type(value) != tuple and type(value) != list :
+        raise TypeError('Must provide a tuple or list')
+      if len(value) != 3 :
+        raise TypeError('Must provide (x,y,z)')
+      for i from 0 <= i < 3 :
+        if type(value[i]) != Vertex :
+          raise TypeError('All three elements must be of type Vertex')
+      py.PyThread_acquire_lock(self._mutex, 1)
+      self._list._array[self._index].a = (<Vertex> value[0])._index
+      self._list._array[self._index].b = (<Vertex> value[1])._index
+      self._list._array[self._index].c = (<Vertex> value[2])._index
+      self._list._flagUpdated(self._index, 1)
+      py.PyThread_release_lock(self._mutex)
+
+
+  property material :
+    def __get__(self) :
+      cdef int i
+      cdef soy.materials.Material material
+      cdef soy._datatypes.MaterialList mlist
+      cdef soy._datatypes.Face _face
+      mlist = (<soy.models.Mesh> self._list._mesh)._mates
+      py.PyThread_acquire_lock(self._mutex, 1)
+      for i from 0 <= i < mlist._children._current :
+        if self._index >= mlist._ranges[i].offset and \
+           self._index < mlist._ranges[i].offset + mlist._ranges[i].length :
+          material = <soy.materials.Material> mlist._children._list[i]
+          break
+      py.PyThread_release_lock(self._mutex)
+      if material :
+        return material
+      else :
+        return None
+
+    def __set__(self, soy.materials.Material material) :
+      cdef int i, _mindex, _oldindex
+      cdef soy._datatypes.Face _face
+      cdef soy._datatypes.MaterialList mlist
+      mlist = (<soy.models.Mesh> self._list._mesh)._mates
+      py.PyThread_acquire_lock(self._mutex, 1)
+      _mindex = -1
+      _oldindex = self._index
+      _face = self._list._array[self._index]
+      for i from 0 <= i < mlist._children._current :
+        if self._index >= mlist._ranges[i].offset and \
+           self._index < mlist._ranges[i].offset + mlist._ranges[i].length :
+          _mindex = i
+          break
+      if _mindex == -1 :
+        py.PyThread_release_lock(self._mutex)
+        raise RuntimeError('This error should never happen.  ' + \
+                           'Please file a ticket on www.pysoy.org')
+      #
+      # First we're going to tackle the MaterialList since it will determine
+      # where in FaceList we need to be.  We start by removing ourselves from
+      # our current location.
+      mlist._ranges[_mindex].length = mlist._ranges[_mindex].length - 1
+      for i from _mindex < i < mlist._children._current :
+        mlist._ranges[i].offset = mlist._ranges[i].offset - 1
+      if mlist._ranges[_mindex].offset == self._index :
+        if mlist._ranges[_mindex].length == 0 :
+          # If this was the only face using that material, remove it
+          for i from _mindex < i < mlist._children._current :
+            mlist._ranges[i-1] = mlist._ranges[i]
+          if (<soy.materials.Material> material)._needsTSLVs() :
+            mesh._mates._hasBumps = mesh._mates._hasBumps - 1
+          py.Py_DECREF(<object> mlist._children._list[_mindex])
+          mlist._children._remove(mlist._children._list[_mindex])
+        #else :
+        #  mlist._ranges[_mindex].offset = mlist._ranges[_mindex].offset + 1
+      _mindex = -1
+      #
+      # Now to see if the material we're setting is already in MaterialList
+      for i from 0 <= i < mlist._children._current :
+        if <soy.materials.Material> mlist._children._list[i] == material :
+          _mindex = i
+          break
+      if _mindex == -1 :
+        #
+        # New material, add face to end of array (look familiar? see __cinit__)
+        self._index = self._list._arraySize - 1
+        _mindex = mlist._children._current
+        mlist._children._append(<void*> material)
+        if (<soy.materials.Material> material)._needsTSLVs() :
+          mesh._mates._hasBumps = mesh._mates._hasBumps + 1
+        py.Py_INCREF(material)
+        mlist._allocRanges(mlist._children._current)
+        mlist._ranges[_mindex].offset = self._index
+        mlist._ranges[_mindex].length = 1
+      else :
+        #
+        # Existing material, make room for ourselves and slide into that group
+        self._index = mlist._ranges[_mindex].offset + \
+                      mlist._ranges[_mindex].length
+        mlist._ranges[_mindex].length = mlist._ranges[_mindex].length + 1
+        for i from _mindex < i < mlist._children._current :
+          mlist._ranges[i].offset = mlist._ranges[i].offset + 1
+      #
+      # Now that we know where we're going, shift the face array in the 
+      # correct direction and flag the array for update.  Oh, and if for some
+      # reason we ended up with the same index, we don't need to do anything
+      if _oldindex < self._index :
+        # We've moved to a later position in the array
+        for i from _oldindex < i <= self._index :
+          self._list._array[i-1] = self._list._array[i]
+        self._list._array[self._index] = _face
+        self._list._flagUpdated(_oldindex, self._index - _oldindex + 1)
+      elif _oldindex > self._index :
+        # We've moved to an earlier position in the array
+        for i from _oldindex > i >= self._index :
+          self._list._array[i+1] = self._list._array[i]
+        self._list._array[self._index] = _face
+        self._list._flagUpdated(self._index, _oldindex - self._index + 1)
+      py.PyThread_release_lock(self._mutex)

@@ -1,0 +1,122 @@
+# project  configured on Tue Nov 19 22:33:41 2013 by
+# waf 1.7.6 (abi 98, python 20704f0 on linux2)
+# using ./waf configure
+#
+----------------------------------------
+Setting top to
+/home/jrm/Workspace/csc447finalproj/libsoy
+----------------------------------------
+Setting out to
+/home/jrm/Workspace/csc447finalproj/libsoy/build
+----------------------------------------
+Checking for 'gcc' (c compiler)
+find program=['gcc', 'cc'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='CC' -> '/usr/bin/gcc'
+find program=['ar'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='AR' -> '/usr/bin/ar'
+/usr/bin/gcc
+----------------------------------------
+Checking for program gas,gcc
+/usr/bin/gcc
+find program=['gas', 'gcc'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='AS' -> '/usr/bin/gcc'
+(tool ar is already loaded, skipping)
+----------------------------------------
+Checking for program pkg-config
+/usr/bin/pkg-config
+find program=['pkg-config'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='PKGCONFIG' -> '/usr/bin/pkg-config'
+----------------------------------------
+Checking for 'gobject-2.0' >= 2.32
+['/usr/bin/pkg-config', '--atleast-version=2.32', 'gobject-2.0']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'gobject-2.0']
+out: -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include  -lgobject-2.0 -lglib-2.0  
+
+yes
+----------------------------------------
+Checking for 'gthread-2.0' >= 2.32
+['/usr/bin/pkg-config', '--atleast-version=2.32', 'gthread-2.0']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'gthread-2.0']
+out: -pthread -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include  -pthread -lgthread-2.0 -lglib-2.0  
+
+yes
+----------------------------------------
+Checking for program valac-0.22
+not found
+find program=['valac-0.22'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='VALAC' -> ''
+from /home/jrm/Workspace/csc447finalproj/libsoy: Could not find the program valac-0.22
+----------------------------------------
+Checking for program valac-0.20
+/usr/bin/valac-0.20
+find program=['valac-0.20'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='VALAC' -> '/usr/bin/valac-0.20'
+/usr/bin/valac-0.20 --version
+out: Vala 0.20.1
+
+---------------------------------------------
+Checking for valac-0.20 version >= (0, 18, 0)
+(0, 20, 1)
+(tool gnu_dirs is already loaded, skipping)
+---------------------------------------------
+Checking for 'orc-0.4'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'orc-0.4']
+out: -I/usr/include/orc-0.4  -lorc-0.4  
+
+yes
+---------------------------------------------
+Checking for program orcc
+/usr/bin/orcc
+find program=['orcc'] paths=['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] var='ORCC' -> '/usr/bin/orcc'
+---------------------------------------------
+Checking for 'dbus-glib-1'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'dbus-glib-1']
+out: -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include  -ldbus-glib-1 -ldbus-1 -lgobject-2.0 -lglib-2.0  
+
+yes
+---------------------------------------------
+Checking for 'gee-1.0' >= 0.5.0
+['/usr/bin/pkg-config', '--atleast-version=0.5.0', 'gee-1.0']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'gee-1.0']
+out: -I/usr/include/gee-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include  -lgee -lgobject-2.0 -lglib-2.0  
+
+yes
+---------------------------------------------
+Checking for 'librsvg-2.0' >= 2.36.0
+['/usr/bin/pkg-config', '--atleast-version=2.36.0', 'librsvg-2.0']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'librsvg-2.0']
+out: -pthread -I/usr/include/librsvg-2.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/cairo -I/usr/include/libpng12 -I/usr/include/pixman-1 -I/usr/include/freetype2  -lrsvg-2 -lm -lgio-2.0 -lgdk_pixbuf-2.0 -lcairo -lgobject-2.0 -lglib-2.0  
+
+yes
+---------------------------------------------
+Checking for 'loudmouth-1.0' >= 1.0
+['/usr/bin/pkg-config', '--atleast-version=1.0', 'loudmouth-1.0']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'loudmouth-1.0']
+out: -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/loudmouth-1.0  -lloudmouth-1 -lidn -lglib-2.0  
+
+yes
+---------------------------------------------
+Checking for 'nice' >= 0.1
+['/usr/bin/pkg-config', '--atleast-version=0.1', 'nice']
+['/usr/bin/pkg-config', '--cflags', '--libs', 'nice']
+out: -pthread -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/nice  -pthread -lnice -lgthread-2.0 -lrt -lgio-2.0 -lgobject-2.0 -lglib-2.0  
+
+yes
+---------------------------------------------
+Checking for 'bluez'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'bluez']
+out:  -lbluetooth  
+
+yes
+---------------------------------------------
+Checking for 'glesv1_cm'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'glesv1_cm']
+out:  -lGLESv1_CM  
+
+yes
+---------------------------------------------
+Checking for 'ode'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'ode']
+out: -DdDOUBLE  -lode  
+
+yes
+---------------------------------------------
+Checking for 'gtk+-3.0'
+['/usr/bin/pkg-config', '--cflags', '--libs', 'gtk+-3.0']
+out: -pthread -I/usr/include/gtk-3.0 -I/usr/include/atk-1.0 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/pango-1.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/harfbuzz -I/usr/include/freetype2 -I/usr/include/pixman-1 -I/usr/include/libpng12  -lgtk-3 -lgdk-3 -latk-1.0 -lgio-2.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo-gobject -lpango-1.0 -lcairo -lgobject-2.0 -lglib-2.0  
+
+yes

@@ -1,0 +1,102 @@
+PySoy Hacking Guidelines
+========================
+or, how to contribute code that doesn't suck
+--------------------------------------------
+
+Introduction
+~~~~~~~~~~~~
+As a free software community project PySoy is worked on by a large number of 
+users.  Each of these users have their own preferences for code layout and 
+with their own unique styles.  Without some structure applied to this process 
+the project would devolve into an unparsable, unmaintainable mess.
+
+We also benefit a great deal from developers working from "different angles".
+A problem addressed with one solution may be very difficult, while by another 
+method very easy.  Guidelines set too strictly would thus dampen the beautiful 
+dissonance that makes our community so strong.
+
+So in an attempted balance these guidelines are set forth.  Use them when it 
+makes sense to, bend or break them when nessesary, and don't complain if 
+someone cleans your code up to better meet these guidelines. :-)
+
+
+Code Layout
+~~~~~~~~~~~
+
+Use PEP-8 (http://www.python.org/dev/peps/pep-0008/) as much as possible.  In
+summary:
+
+ * Lines should wrap at 79 characters
+
+ * 4 space indententation
+
+ * Where PEP-8 can't apply (ie, C code) try to be as clean as possible
+ 
+ 
+Label Conventions
+~~~~~~~~~~~~~~~~~
+
+ * Modules should be all lowercase
+
+ * Classes should be CamelCase
+
+ * Methods and properties should be with lowercase
+
+   - ie, "forces.MonoPole.strength"
+
+ * Avoid functions outside of a class in the public API
+
+
+Module Layout
+~~~~~~~~~~~~~
+
+ * Modules should contain many classes
+
+   - consider merging with another module if only one or two classes
+
+ * Each class should exist in it's own .gs or .c file
+
+   - it's much easier to track API changes and navigate code this way
+
+   - temporary "testing" classes are an exception to this
+
+ * Modules should often be named plural with base class the singular
+
+   - ie, soy.bodies.Body, soy.widgets.Widget, soy.joints.Joint
+
+ * Modules must begin with pydoc strings
+
+   - begin with standard multiline pydoc help for the module
+
+   - include AGPLv3 license information in __credits__
+
+   - __author__ should contain the module's current maintainer
+
+   - __version__ string should be $Rev:$ so users can find code revisions 
+
+
+Class Layout
+~~~~~~~~~~~~
+
+ * Dimensions and ranges should be combined into a single property
+
+   - reduces code and API complexity
+
+   - ie, Body.position, not Body.x Body.y Body.z
+
+   - ie, Joint.stops, not Joint.lostop Joint.histop
+
+ * Classes should accept common properties as __new__/__init__ kw's
+
+   - ie, soy.widgets.Projector(scene, camera=cam, position=(0,25))
+
+ * Every class and every property MUST be documented
+
+   - this is done with a multiline string directly in the code
+
+   - pydocs are copied to both .c and compiled modules, comments are not
+
+
+Documentation
+~~~~~~~~~~~~~
+TODO, see above for now

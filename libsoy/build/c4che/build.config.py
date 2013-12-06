@@ -1,0 +1,2 @@
+version = 0x1070600
+tools = [{'tool': 'ar', 'tooldir': None, 'funs': None}, {'tool': 'c', 'tooldir': None, 'funs': None}, {'tool': 'gcc', 'tooldir': None, 'funs': None}, {'tool': 'compiler_c', 'tooldir': None, 'funs': None}, {'tool': 'asm', 'tooldir': None, 'funs': None}, {'tool': 'gas', 'tooldir': None, 'funs': None}, {'tool': 'gnu_dirs', 'tooldir': None, 'funs': None}, {'tool': 'genie', 'tooldir': None, 'funs': None}, {'tool': 'orc', 'tooldir': None, 'funs': None}, {'tool': 'waf_unit_test', 'tooldir': None, 'funs': None}]

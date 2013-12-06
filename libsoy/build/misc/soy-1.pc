@@ -1,0 +1,13 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: "libsoy"
+Description: "libsoy"
+Version: "1.0_beta3"
+
+Requires: glib-2.0 gio-2.0 gobject-2.0 gee-1.0 dbus-glib-1 librsvg-2.0 \
+          loudmouth-1.0 nice
+Libs: -L${libdir} -lsoy
+Cflags: -I${includedir}

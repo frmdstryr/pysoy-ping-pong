@@ -1,0 +1,53 @@
+# PySoy's audio.Output
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Output.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Output :
+  '''soy.audio Output class
+
+    This is the audio equivelant of a Window
+  '''
+  def __cinit__(self, device=None) :
+    cdef char* _devname
+    if device == None :
+      self._device = al.alcOpenDevice(NULL)
+    elif type(device) == str :
+      _devname = device # there must be an easier way to convert str -> uchar*
+      self._device = al.alcOpenDevice(_devname)
+    else :
+      raise ValueError('output device name must be a string')
+    if self._device == NULL :
+      raise SystemError('unable to open output device')
+    self._context = al.alcCreateContext(self._device, NULL)
+    if self._context == NULL :
+      raise SystemError('unable to create new audio context')
+    _outputs._append(<void*> self)
+
+  def __dealloc__(self) :
+    if self._context :
+      _outputs._remove(<void*> self)
+      al.alcMakeContextCurrent(NULL)
+      al.alcDestroyContext(self._context)
+    if self._device :
+      al.alcCloseDevice(self._device)
+
+  def __repr__(self) :
+    return "<Output '%s'>" % self.__str__()
+
+  def __str__(self) :
+    return <char*> al.alcGetString(self._device, al.ALC_DEVICE_SPECIFIER)    

@@ -1,0 +1,10 @@
+# encoding: utf-8
+
+soypc = bld(
+  source = 'soy-1.pc.in',
+  target = 'soy-1.pc',
+  NAME = bld.get_define('PACKAGE'),
+  LIBS = '-lsoy',
+  VERSION = bld.get_define('VERSION'),
+  prefix = conf.env['PREFIX'],
+)

@@ -1,0 +1,330 @@
+# PySoy's models.Axis class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Axis.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Axis (Model) :
+  '''soy.models.Axis
+
+    This :class:`~soy.model.Model` renders a "XYZ axis" oriented to each 
+    body it's attached to.  This is useful for debugging.
+    X axis is Red, Y is Green and Z is Blue.
+
+    The size property must be positive and not equal to 0.
+  '''
+  def __cinit__(self, size=(1.0,1.0,1.0), *args, **kw):
+    if (size[0] <= 0.0) or (size[1] <= 0.0) or (size[2] <= 0.0):
+      raise ValueError('Cannot set size to less than 0.0')
+    self._size[0] = size[0]
+    self._size[1] = size[1]
+    self._size[2] = size[2]
+    self._updated = 0 
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+
+  property size: # Size of the Axis lines
+    def __get__(self):
+      return self._size[0],self._size[1],self._size[2]
+
+    def __set__(self, value):
+      cdef int a
+      if (value[0] <= 0.0) or (value[1] <= 0.0) or (value[2] <= 0.0):
+        raise ValueError('Cannot set size to less than 0.0')
+      self._size[0] = value[0]
+      self._size[1] = value[1]
+      self._size[2] = value[2]
+      # To set the size of the axis, we update the VBO
+      # We change the values according to the value, and add the offset (.30) for the arrow.
+
+      self._vert[1].px = self._size[0]     # \  Vertex 1
+      self._vert[2].px = self._size[0]      # \  Vertex 2
+      self._vert[3].px = self._size[0] + 0.30 # \  Vertex 3
+      self._vert[4].px = self._size[0]      # \  Vertex 4
+
+      self._vert[6].py = self._size[1]     # \  Vertex 1
+      self._vert[7].py = self._size[1]      # \  Vertex 2
+      self._vert[8].py = self._size[1] + 0.30 # \  Vertex 3
+      self._vert[9].py = self._size[1]      # \  Vertex 4
+
+      self._vert[11].pz = self._size[2]     # \  Vertex 1
+      self._vert[12].pz = self._size[2]      # \  Vertex 2
+      self._vert[13].pz = self._size[2] + 0.30 # \  Vertex 3
+      self._vert[14].pz = self._size[2]      # \  Vertex 4
+
+      self._updated = 1 # Now that its updated, we need to send the data again. 
+      # The rendering thread *must* do this.
+
+  cdef void createVBO(self) :
+    cdef Line                         _elmt[20] 
+    #
+    # X Axis.
+    self._vert[0].px = 0.00          # \  Vertex 0
+    self._vert[0].py = 0.00          #  } (0.0, 0.0, 0.0)
+    self._vert[0].pz = 0.00          # /
+    self._vert[0].cr = 1.00          # \
+    self._vert[0].cg = 0.00          #  } Red
+    self._vert[0].cb = 0.00          # /___________________________
+    self._vert[1].px = self._size[0] # \  Vertex 1
+    self._vert[1].py = 0.00          #  } (1.0, 0.0, 0.0)
+    self._vert[1].pz = 0.00          # /
+    self._vert[1].cr = 1.00          # \
+    self._vert[1].cg = 0.00          #  } Red
+    self._vert[1].cb = 0.00          # /___________________________
+
+    self._vert[2].px = self._size[0] # \  Vertex 2
+    self._vert[2].py = 0.30          #  } (1.0, 0.3, 0.0)
+    self._vert[2].pz = 0.00          # /
+    self._vert[2].cr = 1.00          # \
+    self._vert[2].cg = 0.00          #  } Red
+    self._vert[2].cb = 0.00          # /___________________________
+    self._vert[3].px = self._size[0] + .30 # \  Vertex 3
+    self._vert[3].py = 0.00          #  } (1.3, 0.0, 0.0)
+    self._vert[3].pz = 0.00          # /
+    self._vert[3].cr = 1.00          # \
+    self._vert[3].cg = 0.00          #  } Red
+    self._vert[3].cb = 0.00          # /___________________________
+
+    self._vert[4].px = self._size[0] # \  Vertex 4
+    self._vert[4].py = -.30          #  } (1.0, -0.3, 0.0)
+    self._vert[4].pz = 0.00          # /
+    self._vert[4].cr = 1.00          # \
+    self._vert[4].cg = 0.00          #  } Red
+    self._vert[4].cb = 0.00          # /___________________________
+
+    # Y Axis
+    self._vert[5]= self._vert[0]          # Vertex 5 is the same as vertex 0
+    self._vert[5].cr = 0.0           # Except its not Red.
+    self._vert[5].cg = 1.0           # Its green.
+
+    self._vert[6].px = 0.00          # \  Vertex 6
+    self._vert[6].py = self._size[1] #  } (0.0, 1.0, 0.0)
+    self._vert[6].pz = 0.00          # /
+    self._vert[6].cr = 0.00          # \
+    self._vert[6].cg = 1.00          #  } Green
+    self._vert[6].cb = 0.00          # /___________________________
+    self._vert[7].px = 0.30          # \  Vertex 7
+    self._vert[7].py = self._size[1] #  } (0.3, 1.0, 0.0)
+    self._vert[7].pz = 0.00          # /
+    self._vert[7].cr = 0.00          # \
+    self._vert[7].cg = 1.00          #  } Green
+    self._vert[7].cb = 0.00          # /___________________________
+
+    self._vert[8].px = 0.00          # \  Vertex 8
+    self._vert[8].py = self._size[1] + .30 #  } (0.0, 1.3, 0.0)
+    self._vert[8].pz = 0.00          # /
+    self._vert[8].cr = 0.00          # \
+    self._vert[8].cg = 1.00          #  } Green
+    self._vert[8].cb = 0.00          # /___________________________
+    self._vert[9].px = -.30          # \  Vertex 9
+    self._vert[9].py = self._size[1] #  } (-0.3, 1.0, 0.0)
+    self._vert[9].pz = 0.00          # /
+    self._vert[9].cr = 0.00          # \
+    self._vert[9].cg = 1.00          #  } Green
+    self._vert[9].cb = 0.00          # /___________________________
+
+    # Z Axis
+    self._vert[10] = self._vert[0]
+    self._vert[10].cr = 0.00          # \
+    self._vert[10].cb = 1.00          # /___________________________
+
+    self._vert[11].px = 0.00          # \  Vertex 11
+    self._vert[11].py = 0.00          #  } (0.0, 1.3, 0.0)
+    self._vert[11].pz = self._size[2] # /
+    self._vert[11].cr = 0.00          # \
+    self._vert[11].cg = 0.00          #  } Blue
+    self._vert[11].cb = 1.00          # /___________________________
+
+    self._vert[12].px = 0.30          # \  Vertex 12
+    self._vert[12].py = 0.00          #  } (-0.3, 1.0, 0.0)
+    self._vert[12].pz = self._size[2] # /
+    self._vert[12].cr = 0.00          # \
+    self._vert[12].cg = 0.00          #  } Blue
+    self._vert[12].cb = 1.00          # /___________________________
+
+    self._vert[13].px = 0.00          # \  Vertex 13
+    self._vert[13].py = 0.00          #  } (0.0, 1.3, 0.0)
+    self._vert[13].pz = self._size[2] + .30          # /
+    self._vert[13].cr = 0.00          # \
+    self._vert[13].cg = 0.00          #  } Blue
+    self._vert[13].cb = 1.00          # /___________________________
+    self._vert[14].px = -.30          # \  Vertex 14
+    self._vert[14].py = 0.00          #  } (-0.3, 1.0, 0.0)
+    self._vert[14].pz = self._size[2] # /
+    self._vert[14].cr = 0.00          # \
+    self._vert[14].cg = 0.00          #  } Blue
+    self._vert[14].cb = 1.00          # /___________________________
+
+    # TODO optional tags. I left them out because they're not all that useful
+    # and take up another 15+ verticies.. maybe when we can define verticies more easily.
+    
+
+    #
+    # Next populate _elmt
+    #
+    _elmt[0].a = 0              # Line 0: 0-1
+    _elmt[0].b = 1              # ____________________________
+
+    _elmt[1].a = 2              # Line 1: 2-4
+    _elmt[1].b = 4              # ____________________________
+
+    _elmt[2].a = 2              # Line 2: 2-3
+    _elmt[2].b = 3              # ____________________________
+
+    _elmt[3].a = 3              # Line 3: 3-4
+    _elmt[3].b = 4              # ____________________________
+
+    _elmt[4].a = 5              # Line 4: 5-6
+    _elmt[4].b = 6              # ____________________________
+
+    _elmt[5].a = 7              # Line 5: 7-9
+    _elmt[5].b = 9              # ____________________________
+
+    _elmt[6].a = 8              # Line 6: 8-9
+    _elmt[6].b = 9              # ____________________________
+
+    _elmt[7].a = 8              # Line 7: 8-7
+    _elmt[7].b = 7              # ____________________________
+
+    _elmt[8].a = 10             # Line 8: 10-11
+    _elmt[8].b = 11             # ____________________________
+
+    _elmt[9].a = 14             # Line 9: 14-12
+    _elmt[9].b = 12             # ____________________________
+
+    _elmt[10].a = 13            # Line 10: 13-12
+    _elmt[10].b = 12            # ____________________________
+
+    _elmt[11].a = 13            # Line 11: 13-14
+    _elmt[11].b = 14            # ____________________________
+
+    #
+    # Create new vertex buffer and send _vert
+    #
+    gl.glGenBuffersARB(1, &self._vertBuffer)
+    gl.glBindBufferARB(gl.GL_ARRAY_BUFFER_ARB, self._vertBuffer)
+    gl.glBufferDataARB(gl.GL_ARRAY_BUFFER_ARB, sizeof(self._vert), self._vert, 
+                       gl.GL_STATIC_DRAW_ARB)
+    #
+    # Do the same for the element buffer
+    #
+    gl.glGenBuffersARB(1, &self._elmtBuffer)
+    gl.glBindBufferARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, self._elmtBuffer)
+    gl.glBufferDataARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, sizeof(_elmt), _elmt,
+                       gl.GL_STATIC_DRAW_ARB)
+  ############################################################################
+  #
+  # WindowLoop Functions
+  #
+
+  cdef void _render(self, soy.bodies.Body _body) :
+    cdef gl.GLfloat  _mtx[16]
+    #
+    ######################################
+    #
+    # get model's matrix
+    #
+    _mtx[0]  = _body._rotation[0]
+    _mtx[1]  = _body._rotation[4]
+    _mtx[2]  = _body._rotation[8]
+    _mtx[3]  = 0.0  
+    _mtx[4]  = _body._rotation[1]
+    _mtx[5]  = _body._rotation[5]
+    _mtx[6]  = _body._rotation[9]
+    _mtx[7]  = 0.0  
+    _mtx[8]  = _body._rotation[2]
+    _mtx[9]  = _body._rotation[6]
+    _mtx[10] = _body._rotation[10]
+    _mtx[11] = 0.0 
+    _mtx[12] = _body._position[0] 
+    _mtx[13] = _body._position[1] 
+    _mtx[14] = _body._position[2] 
+    _mtx[15] = 1
+    #
+    ######################################
+    #
+    # save Camera matix before transforming to the Axis' matrix
+    #
+    gl.glPushMatrix()
+    gl.glMultMatrixf(_mtx)
+    #
+    ######################################
+    #
+    # Test if we've already setup the axis VBO
+    #
+    if self._vertBuffer :
+      #
+      # Since we already setup the buffers during the first _render, now we
+      # just need to re-bind them to render again
+      #
+      gl.glBindBufferARB(gl.GL_ARRAY_BUFFER_ARB,         self._vertBuffer)
+      gl.glBindBufferARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, self._elmtBuffer) 
+      #
+    else:
+      #
+      # This is the first render pass, so we need to setup the VBO
+      #
+      self.createVBO();
+
+    if self._updated: # If someone updated the array in client Memory
+      gl.glBindBufferARB(gl.GL_ARRAY_BUFFER_ARB,self._vertBuffer)
+      gl.glBufferDataARB(gl.GL_ARRAY_BUFFER_ARB, sizeof(self._vert), self._vert, 
+                           gl.GL_STATIC_DRAW_ARB) # Send the data again.
+    #
+    ######################################
+    #
+    # Disable unused pointers
+    #
+    #   Unlike Mesh and most other models, Axis doesn't use normals or textures
+    #   so we need to turn these off while rendering an Axis
+    #
+    gl.glDisableClientState(gl.GL_NORMAL_ARRAY)         # No Normals
+    gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)  # No Texture Coords
+    #
+    ######################################
+    #
+    # Enable color pointer
+    #
+    #   To get color data into the vertices without making three separate
+    #   rendering calls we turn on the color array while rendering
+    #
+    gl.glEnableClientState(gl.GL_COLOR_ARRAY) # We need to render with color arrays
+    #
+    gl.glVertexPointer(3, gl.GL_FLOAT, sizeof(VertPC),  <gl.GLvoid *> 0)
+    gl.glColorPointer (3, gl.GL_FLOAT, sizeof(VertPC), <gl.GLvoid *> 0+12)
+    gl.glDisable(gl.GL_CULL_FACE)
+    gl.glDisable(gl.GL_DEPTH_TEST)
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glDrawElements(gl.GL_LINES, 24, gl.GL_UNSIGNED_BYTE, <gl.GLvoid *> 0)
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_CULL_FACE) 
+    gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+    gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
+    gl.glEnableClientState(gl.GL_NORMAL_ARRAY)
+    #
+    ######################################
+    #
+    # return to camera matrix
+    #
+    gl.glPopMatrix()
+    #
+    ######################################
+

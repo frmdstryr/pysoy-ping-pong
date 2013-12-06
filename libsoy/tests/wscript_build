@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+
+sgk2png = bld(
+  features = 'c cprogram test',
+  name         = 'sgl2png',
+  target       = 'sgk2png',  
+  source       = 'sgk2pngTest.gs',
+  use          = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+)
+
+# TODO: Make sure these work before adding them
+'''
+colors = bld(
+  features = 'c cprogram',
+  name         = 'colors',
+  target       = 'colors',  
+  source       = 'colors.gs',
+  use          = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+)
+
+simple = bld(
+  features = 'c cprogram',
+  name         = 'simple',
+  target       = 'simple',  
+  source       = 'simple.gs',
+  use          = 'soy',
+  packages     = 'soy posix',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+bluetoothagent = bld(
+  features = 'c cprogram',
+  name         = 'bluetoothagent',
+  target       = 'bluetoothagent',  
+  source       = 'bluetoothagent.gs',
+  use          = 'soy',
+  packages     = 'soy posix dbus-glib-1 bluez',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+bluetoothdbus = bld(
+  features     = 'c cprogram',
+  name         = 'bluetoothdbus',
+  target       = 'bluetoothdbus',  
+  source       = 'bluetoothdbus.gs',
+  use          = 'soy dbus-glib-1',
+  packages     = 'soy posix dbus-glib-1 bluez',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+pointerTest = bld(
+  features = 'c cprogram',
+  name         = 'pointerTest',
+  target       = 'pointerTest',  
+  source       = 'pointerTest.gs',
+  use = 'soy',
+  packages     = 'soy posix',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+tdside = bld(
+  features = 'c cprogram',
+  name         = 'tdside',
+  target       = 'tdside',  
+  source       = 'tdside.gs',
+  use = 'soy',
+  packages     = 'soy posix',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+jointTest = bld(
+  features = 'c cprogram',
+  name         = 'jointTest',
+  target       = 'jointTest',  
+  source       = 'jointTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+hboxTest = bld(
+  features = 'c cprogram',
+  name         = 'hboxTest',
+  target       = 'hboxTest',  
+  source       = 'hboxTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+hscrollTest = bld(
+  features = 'c cprogram',
+  name         = 'hscrollTest',
+  target       = 'hscrollTest',  
+  source       = 'hscrollTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+vboxTest = bld(
+  features = 'c cprogram',
+  name         = 'vboxTest',
+  target       = 'vboxTest',  
+  source       = 'vboxTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+vscrollTest = bld(
+  features = 'c cprogram',
+  name         = 'vscrollTest',
+  target       = 'vscrollTest',  
+  source       = 'vscrollTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+  cflags       = ['-g'],
+)
+
+mesh = bld(
+  features    = 'c cprogram',
+  name        = 'meshTest',
+  target      = 'meshTest',
+  source      = 'meshTest.gs',
+  use         = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True
+)
+
+graph = bld(
+  features    = 'c cprogram',
+  name        = 'graphTest',
+  target      = 'graphTest',
+  source      = 'graphTest.gs',
+  use         = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  lib          = ['m'], 
+  threading    = True,
+)
+
+cont = bld(
+  features    = 'c cprogram',
+  name        = 'controllerTest',
+  target      = 'controllerTest',
+  source      = 'controllerTest.gs',
+  use         = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  lib          = ['m'], 
+  threading    = True,
+)
+
+net_client = bld(
+  features = 'c cprogram',
+  name         = 'networkTest',
+  target       = 'networkTest',  
+  source       = 'networkTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+)
+
+net_server = bld(
+  features = 'c cprogram',
+  name         = 'soyserver',
+  target       = 'soyserver',  
+  source       = 'soyserver.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+)
+
+net_server = bld(
+  features = 'c cprogram',
+  name         = 'xmpp_test',
+  target       = 'xmpp_test',
+  source       = 'XMPPAgentTest.gs',
+  use = 'soy',
+  packages     = 'soy',
+  vapi_dirs    = '../src ../vapi',
+  includes     = '../include',
+  threading    = True,
+)
+'''

@@ -1,0 +1,48 @@
+\input{preamble.tex}
+\begin{document}
+\section*{The Framework}
+The ``framework'' of the \texttt{soy\_import.py} script consists of the \texttt{ObjectFinder} and the \texttt{ObjectReader} class, as well as the \texttt{ReadData} class, which all the \texttt{Read*} classes inherit from.
+
+\subsection*{The \texttt{ObjectFinder} class}
+The point of the \texttt{ObjectFinder} class, is to be able to simply request a specific object, and then have the \texttt{ObjectFinder} take care of searching after, and finding it amongst all the .soy files. It simply works on the file level, instantiating \texttt{ObjectReader}s, and then letting them take care of finding the objects inside the files.
+
+The \texttt{ObjectFinder} class contains two methods: \texttt{fetchReader} and \texttt{findObject}. When it is instantiated, the \texttt{\_\_init\_\_} method searches through, and indexes all the files that could be subject for search. This happens in three levels:
+\begin{enumerate}
+\item The original file, opened from the interface.
+\item All the files of the directory of the original files, recursively.
+\item All the files of the parent directory, recursively.
+\end{enumerate}
+Afterwards, \texttt{findObject} will then be able to search these files with that priority. \texttt{findObject} uses \texttt{fetchReader} to make sure we do not instantiate an \texttt{ObjectReader} class more than once. When the files are searched, the instantiated \texttt{ObjectReader} classes are stored in the \texttt{self.readerdict} dictionary, and they can be reused if needed.
+
+\subsection*{The \texttt{ObjectReader} class}
+The role of the \texttt{ObjectReader} is to read a file, index every .soy object in that file, and be able to read specific objects from it. It contains a list for each object type, containing all the instantiated \texttt{Read*} classes of that type. A dictionary \texttt{self.ObjectTypes} of the object types is also present. The \texttt{self.indexFile} method indexes and stores the instantiated \texttt{Read*} class of each object.
+
+The \texttt{self.readNextHeader} method simply reads the next header in the file and returns it. And \texttt{getObject} finds the right \texttt{Read*} class instance in its lists and returns it. \texttt{getNextObject} is deprecated and unused. It should probably be removed. It stems from a time when we thought it might be good to read all the object sequentially. As it turns out, that was not a particularly good approach, since the dependencies between objects are anything but linear.
+
+\subsection*{The \texttt{ReadData} class}
+The role of \texttt{ReadData} is to provide a few universal functions for all the other \texttt{Read*} classes to inherit. These are \texttt{self.\_\_call\_\_} and \texttt{self.readNextBlock}. \texttt{self.\_\_call\_\_} simply loops, calling \texttt{self.readNextBlock} until it has read all the way through the object.
+
+\texttt{readNextBlock} reads the header of the next block and calls the \\ \texttt{self.acceptblock} method. All \texttt{Read*} classes must contain this method. \\ \texttt{self.acceptblock} receives a block ID and size as arguments, and then it is up to each \texttt{Read*} class to define how to read a block of that ID.
+
+\subsection*{The \texttt{Read*} classes}
+
+All \texttt{Read*} classes have a number of attributes they should all have:
+\begin{itemize}
+\item \texttt{self.soyfile}: File object. The file this .soy object is contained in.
+\item \texttt{self.name}: String. The name of this object.
+\item \texttt{self.size}: Integer. Size of the data of this object.
+\item \texttt{self.datapos}: Integer. Position of first byte of the object data in this file.
+\item \texttt{self.amountread}: Integer. Amount of data that has been read from this object.
+\item \texttt{self.type}: Integer. Type ID of this object.
+\item \texttt{self.Blocks}: Dictionary. A 2-tuple containing the inner class for the block data, and the object containing either one or more of these classes.
+\end{itemize}
+
+The \texttt{self.Blocks} attribute adds the additional requirement that there should be an inner class for each block type. Currently, this is ordered so that even if you have a block with a \texttt{number\_of} attribute, the block class defines only one instance of the information that can be in a block. So you have to determine in \texttt{acceptblock} if you are dealing with a \texttt{number\_of} block or not. This may be inconvenient. And in fact, if this requirement was removed, it might even be possible to move the \texttt{acceptblock} method into \texttt{ReadData}.
+
+\section*{The Interface}
+The interface is handled by the \texttt{ImportDialog} class, and the principles are much the same as \texttt{ExportDialog} in the \texttt{soy\_export.py} script, with \texttt{DialogGrid} as the helper class for defining another coordinate system, and \texttt{self.DrawDialog}, \texttt{self.KeyEvent} and \texttt{self.ButtonEvent} as the three methods passed to \\ \texttt{Blender.Draw.Register}.
+
+When an import file has been set, you get a \texttt{Blender.Draw.Menu} with a choice of which type of data you want to import from it. When that has been chosen, the menu calls either \texttt{importMesh}, \texttt{importEntity} or \texttt{importNode}, depending on the type. These functions then calls a \texttt{Blender.Draw.PupMenu} which lists all the objects of that type from the file. Last in the chain of these type-specific methods are \texttt{fetchNMesh}, \texttt{fetchEntObject} and \texttt{fetchNodeObject}.
+
+Aside from being called from the \texttt{import*} methods, these \texttt{fetch*} methods also calls each other in a sort of hierarchy. \texttt{fetchNodeObject} calls itself recursively and also calls \texttt{fetchEntObject}. And \texttt{fetchEntObject} calls \texttt{fetchNMesh}. Each \texttt{fetch*} methods always checks if a Blender Object of that name already exists, and if it does, it returns that Object instead of creating a new one. This is especially useful in \texttt{fetchNMesh}, though \texttt{fetchEntObject} and \texttt{fetchNodeObject} rarely needs it.
+\end{document}

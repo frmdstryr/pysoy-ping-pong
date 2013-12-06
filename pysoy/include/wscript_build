@@ -1,0 +1,7 @@
+import os
+
+# List of files to install
+ifiles = os.listdir("include")
+# Do not install this build file
+ifiles.remove("wscript_build")
+bld.install_files('${PREFIX}/include/pysoy', ifiles)

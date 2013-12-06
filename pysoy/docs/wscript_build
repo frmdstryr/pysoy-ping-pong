@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# encoding: utf-8
+import sys, os
+from waflib.Utils import subprocess
+
+top = '.'
+out = 'build'
+
+pysoy = bld (
+  rule   = "${SPHINX_BUILD} -b html -E -d %s . %s" % (os.path.join(out, "doctrees"), os.path.join(out, "html")),
+  cwd    = bld.path.abspath(),
+  source = bld.path.ant_glob('**/*.c')
+    + bld.path.ant_glob('**/*.rst')
+    + bld.path.ant_glob('conf.py'),
+  target = bld.path.parent.find_or_declare('docs') 
+)
+

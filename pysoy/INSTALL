@@ -1,0 +1,145 @@
+PySoy Installation Guide
+========================
+While many PySoy users will grab the latest pre-packaged release with
+everything taken care of for them, users and developers compiling from
+Mercurial or building a package for distribution may need this guide.
+(See the windows_building.txt for instructions to compile/build/install
+on Windows)
+
+
+Dependencies
+------------
+You'll want to make sure these are installed before proceeding:
+    Python  >= 3.1
+    libsoy  == 1.0_beta3
+
+If you're using a binary-based distribution (such as Ubuntu, Fedora, etc) make
+sure you install the -dev versions of these dependencies.
+
+You will also need a working C compiler environment for building Python
+modules (same as your Python version was built with).
+
+------------------------------------------------------------------------------
+
+Arch Linux Quickstart
+=====================
+
+Just install pysoy-hg from the AUR. You either download the source tarball,
+or you install it using a AUR wrapper like yaourt:
+ yaourt -S pysoy-hg
+
+This will also install libsoy-hg from AUR.
+
+Source tarball can be found here:
+http://aur.archlinux.org/packages.php?ID=47780
+
+------------------------------------------------------------------------------
+
+Gentoo Quickstart
+=================
+
+ sudo emerge -av dev-python/sphinx
+
+You will also need libsoy installed.  See the Gentoo Quickstart section in
+libsoy/INSTALL for dependency install instructions.
+
+When libsoy is installed to /usr/local you will need to then::
+
+  PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./waf configure
+
+------------------------------------------------------------------------------
+
+Ubuntu Quickstart
+=================
+
+On Ubuntu 12.04 LTS or above::
+
+ sudo apt-get install python3-dev libxi-dev python3-sphinx
+
+You will also need libsoy installed.  See the Ubuntu Quickstart section in
+libsoy/INSTALL for dependency install instructions.
+
+------------------------------------------------------------------------------
+
+OS X Quickstart
+===============
+
+Getting pysoy installed on OS X can be quite a lengthy process, because OS X has no canonical package manager and many of pysoy's dependencies don't really grok the concept of multiple architectures.
+
+If you have libsoy installed properly (see the Mac OS X section in libsoy/INSTALL), it should be relatively easy to get pysoy working. Just make sure you run setup.py with your ARCHFLAGS, CFLAGS, and LDFLAGS mapped to "-arch i386".
+
+You will find instructions that have worked for at least one person at http://www.pysoy.org/wiki/Install/OSX
+
+------------------------------------------------------------------------------
+
+Compiling
+---------
+If you're reading this you've already downloaded PySoy.  If you have all
+the dependencies installed you should, now, be able to type:
+  python3 setup.py build
+
+and watch it compile.  Any compile errors not linked to a missing
+dependency should be reported to our bug tracker (below).
+
+If everything has gone well you can now install the PySoy module with:
+  sudo python3 setup.py install
+
+
+Updating
+--------
+If you've installed from Mercurial you should be able to update your version
+by changing to this directory and running:
+  hg pull -u
+
+Then repeat the compile steps (above).
+
+Troubleshooting
+---------------
+
+- I get the following error when attempting to build/install Pysoy:
+
+`
+Traceback (most recent call last):
+  File "setup.py", line 107, in <module>
+    extra_compile_args = ['-g'])
+  File "setup.py", line 59, in pkgconfig
+    raise OSError('Package(s) Not Found\n\n%s' % output)
+OSError: Package(s) Not Found
+`
+
+Package soy-1.0 was not found in the pkg-config search path.
+Perhaps you should add the directory containing `soy-1.0.pc'
+to the PKG_CONFIG_PATH environment variable
+No package 'soy-1.0' found
+`
+
+Add the directory containing `soy-1.0.pc` to your path.
+On my system, adding the following to my .bashrc file worked:
+
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
+
+`
+- I get the following error when attempting to import soy:
+
+% import soy
+ImportError: libsoy.so: cannot open shared object file: No such file or directory
+`
+
+The package can't be imported, because libsoy isn't in Python's sys.path.
+You can fix this by adding the installation dir (/usr/local/lib for me at least) to your LD_LIBRARY_PATH.
+This can be done by adding the following to your .bashrc file:
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+or adding the path to /etc/ld.so.conf.
+
+Bug Reporting
+-------------
+There's a "New Ticket" link at the top of http://pysoy.org/ for reporting
+bugs.  You'll need to login to access it, registration should be quick
+and painless while helping us cut down on ticket spam and making it
+easier for us to contact you for more information.
+
+Please select the correct version when filing bug reports and, if
+building from Mercurial, mention the revision number and/or date of last
+update when writing your report.  This is very useful to us.

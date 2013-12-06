@@ -1,0 +1,226 @@
+# PySoy's models.Axis class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Sun.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Sun (Model) :
+  '''soy.models.Sun
+
+    This :class:`~soy.model.Model` renders a sun.
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+  
+  def __cinit__(self, **kwargs ) :
+    if kwargs.has_key('centerMat') :
+      self._centerMat = kwargs['centerMat']
+    else:
+      self._centerMat = soy.materials.StainlessSteel()
+
+    if kwargs.has_key('auraMat') :
+      self._auraMat = kwargs['auraMat']
+    else:
+      self._auraMat = soy.materials.StainlessSteel()
+
+    if kwargs.has_key('spikeMat') :
+      self._spikeMat = kwargs['spikeMat']
+    else:
+      self._spikeMat = soy.materials.StainlessSteel()
+
+    if kwargs.has_key('numSpikes') :
+      self._numSpikes = kwargs['numSpikes']
+    else:
+      self._numSpikes = 4
+
+    if kwargs.has_key('circleVerts') :
+      self._circleVerts = kwargs['circleVerts']
+    else:
+      self._circleVerts = 32
+
+    if kwargs.has_key('centerSize') :
+      self._centerSize[0] = kwargs['centerSize'][0]
+      self._centerSize[1] = kwargs['centerSize'][1]
+    else:
+      self._centerSize[0] = 1
+      self._centerSize[1] = 1
+
+    if kwargs.has_key('auraSize') :
+      self._auraSize[0] = kwargs['auraSize'][0]
+      self._auraSize[1] = kwargs['auraSize'][1]
+    else:
+      self._auraSize[0] = 2
+      self._auraSize[1] = 2
+
+    if kwargs.has_key('spikeSize') :
+      self._spikeSize = kwargs['spikeSize']
+    else:
+      self._spikeSize = 4
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+
+  property centerMat :
+    def __get__(self) :
+      return self._centerMat
+
+    def __set__(self, newmat) :
+      self._centerMat = newmat
+
+
+  property auraMat :
+    def __get__(self) :
+      return self._auraMat
+
+    def __set__(self, newmat) :
+      self._auraMat = newmat
+
+
+  property spikeMat :
+    def __get__(self) :
+      return self._spikeMat
+
+    def __set__(self, newmat) :
+      self._spikeMat = newmat
+
+
+  property numSpikes :
+    def __get__(self) :
+      return self._numSpikes
+
+    def __set__(self, newmat) :
+      self._numSpikes = newmat
+
+
+  property circleVerts :
+    def __get__(self) :
+      return self._circleVerts
+
+    def __set__(self, newmat) :
+      self._circleVerts = newmat
+
+
+  property centerSize :
+    def __get__(self) :
+      return (self._centerSize[0], self._centerSize[1])
+
+    def __set__(self, newsize) :
+      self._centerSize[0] = newsize[0]
+      self._centerSize[1] = newsize[1]
+
+
+  property auraSize :
+    def __get__(self) :
+      return (self._auraSize[0], self._auraSize[1])
+
+    def __set__(self, newsize) :
+      self._auraSize[0] = newsize[0]
+      self._auraSize[1] = newsize[1]
+
+
+  property spikeSize :
+    def __get__(self) :
+      return self._spikeSize
+
+    def __set__(self, newsize) :
+      self._spikeSize = newsize
+
+
+  ############################################################################
+  #
+  # WindowLoop Functions
+  #
+
+  cdef void _render(self, soy.bodies.Body _body) :
+    cdef int   _i
+    cdef float _mmat[16]
+    cdef float _xSize
+    cdef float _ySize
+    cdef float _angle
+    cdef float _piS
+    #
+    _piS = 3.1415926535897931 / 180.0
+    gl.glEnable(gl.GL_POLYGON_OFFSET_FILL)
+    #
+    # UP = (_mmat[0], _mmat[4], _mmat[8])
+    # RIGHT = (_mmat[1], _mmat[5], _mmat[9])
+    gl.glGetFloatv(gl.GL_MODELVIEW_MATRIX, _mmat)
+    _mmat[12] = _mmat[13] = _mmat[14] = 0
+    gl.glMultTransposeMatrixf(_mmat)
+    #
+    # Render Spikes
+    if self._spikeMat :
+      gl.glPolygonOffset(0,0)
+      self._spikeMat._coreBind()
+      _angle = 360.0 / self._numSpikes
+      for _i from 0 <= _i < self._numSpikes :
+        gl.glPushMatrix()
+        gl.glRotatef( _i * _angle, 0.0, 0.0, 1.0)
+        _xSize = self._centerSize[0]/5.0
+        _ySize = self._centerSize[1]/5.0
+        gl.glBegin(gl.GL_TRIANGLES)
+        gl.glNormal3f(0,0,-1)
+        gl.glTexCoord1f(0.0)
+        gl.glVertex3f(_xSize, _ySize, 0)
+        gl.glTexCoord1f(1.0)
+        gl.glVertex3f(0, self._spikeSize, 0)
+        gl.glTexCoord1f(0.0)
+        gl.glVertex3f(-_xSize, _ySize, 0)
+        gl.glEnd()
+        gl.glPopMatrix()
+        self._spikeMat._coreUnBind()
+    #
+    # Render Aura
+    if self._auraMat :
+      gl.glPolygonOffset(0, -1)
+      self._auraMat._coreBind()
+      _angle = 360.0 / self._circleVerts
+
+      gl.glBegin(gl.GL_TRIANGLE_FAN)
+      gl.glNormal3f(0,0,-1)
+      gl.glTexCoord1f(0.0)
+      gl.glVertex3f(0,0,0)
+      gl.glTexCoord1f(1.0)
+      for _i from 0 <= _i <= self._circleVerts :
+        _xSize = self._auraSize[0] * ode.dSin(-_pyS*(<float> _i * _angle))
+        _ySize = self._auraSize[1] * ode.dCos( _pyS*(<float> _i * _angle))
+        gl.glVertex3f(_xSize, _ySize, 0.0)
+      gl.glEnd()
+      self._auraMat._coreUnBind()
+    #
+    # Render Center
+    if self._centerMat :
+      gl.glPolygonOffset( 0.0, -4)
+      self._centerMat._coreBind()
+      _angle = 360.0 / self._circleVerts
+      gl.glBegin(gl.GL_TRIANGLE_FAN)
+      gl.glNormal3f(0,0,-1)
+      gl.glTexCoord1f(0.0)
+      gl.glVertex3f(0,0,0)
+      gl.glTexCoord1f(1.0)
+      for _i from 0 <= _i <= self._circleVerts :
+        _xSize = self._centerSize[0] * ode.dSin(-_pyS*(<float> _i * _angle))
+        _ySize = self._centerSize[1] * ode.dCos( _pyS*(<float> _i * _angle))
+        gl.glVertex3f(_xSize, _ySize, 0.0)
+      gl.glEnd()
+      self._centerMat._coreUnBind()
+    gl.glDisable(gl.GL_POLYGON_OFFSET_FILL)

@@ -1,0 +1,244 @@
+# PySoy's _datatypes.VertexList class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: VertexList.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+# This class is not intended to be stored or transfered on it's own but
+# rather as part of it's parent Mesh.  Parent must be in __cinit__ as
+# it's parent holds the data this class works on.
+
+cdef class VertexList (Datatype) :
+  '''soy._datatypes.VertexList
+
+    This is a list-like container class for shared vertices.
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+
+  def __cinit__(self, mesh) :
+    if not isinstance(mesh, soy.models.Mesh) :
+      raise TypeError('argument must be of type soy.bodies.Mesh')
+    self._mesh        = mesh
+    self._children    = soy._internals.Children()
+    self._bufferAlloc = 0
+
+
+  def __len__(self) :
+    return self._arraySize
+
+
+  def __str__(self) :
+    cdef int    _i
+    cdef object _l
+    _l = []
+    self._children._startIter()
+    for _i from 0 <= _i < self._arraySize :
+      _l.append({'position':(self._array[_i].px,
+                             self._array[_i].py,
+                             self._array[_i].pz),
+                 'normal'  :(self._array[_i].nx,
+                             self._array[_i].ny,
+                             self._array[_i].nz),
+                 'texcoord':(self._array[_i].tx,
+                             self._array[_i].ty,
+                             self._array[_i].tz)})
+    self._children._iterDone()
+    return str(_l)
+
+
+  def __repr__(self) :
+    return '<VertexList with %d verticies>' % self.__len__()
+
+
+  def __getitem__(self, _index) :
+    cdef int i, _found
+    cdef soy.atoms.Vertex _vert
+    #
+    # Check to see if there's already a Vertex instance made, if so return it,
+    # otherwise create a new instance and return that.  We do this to prevent
+    # duplicate Vertex instances and to prevent having to internally hold an
+    # instance of every vertex in every mesh - that'd eat way too much memory.
+    #
+    _found = 0
+    py.PyThread_acquire_lock(self._mesh._mutex, 1)
+    if _index < 0 :
+      _index = self._arraySize + _index
+    if _index < 0 or _index >= self._arraySize :
+      py.PyThread_release_lock(self._mesh._mutex)
+      raise IndexError('vertex index out of range')
+    for i from 0 <= i < self._children._current :
+      if (<soy.atoms.Vertex> self._children._list[i])._index == _index :
+        _vert = <soy.atoms.Vertex> self._children._list[i]
+        _found = 1
+        break
+    py.PyThread_release_lock(self._mesh._mutex)
+    if not _found :
+      _vert = soy.atoms.Vertex(mesh = self._mesh, index = _index)
+    return _vert
+
+
+  ############################################################################
+  #
+  # General C functions
+  #
+
+  cdef void _flagUpdated(self, int _index) :
+    if _index < self._updateRange.offset or self._updateRange.offset == -1 :
+      self._updateRange.offset = _index
+    if _index - self._updateRange.offset > self._updateRange.length :
+      self._updateRange.length = _index - self._updateRange.offset
+
+
+  ############################################################################
+  #
+  # WindowLoop functions
+  #
+
+  cdef void _render(self) :
+    #
+    gl.glBindBufferARB  (gl.GL_ARRAY_BUFFER_ARB, self._buffer)
+    self._sendUpdated()
+    #
+    gl.glVertexPointer  (3,  gl.GL_FLOAT, sizeof(Vert), <float*>  0)
+    gl.glNormalPointer  (    gl.GL_FLOAT, sizeof(Vert), <float*> 12)
+    gl.glFogCoordPointerEXT( gl.GL_FLOAT,  0, <float*> (sizeof(Vert) * self._bufferAlloc))
+
+
+  cdef void _createBuffer(self) :
+    self._bufferAlloc = self._arrayAlloc
+    self._updateRange.offset = -1
+    gl.glGenBuffersARB(1, &self._buffer)
+    gl.glBindBufferARB(gl.GL_ARRAY_BUFFER_ARB, self._buffer)
+    gl.glBufferDataARB(gl.GL_ARRAY_BUFFER_ARB, (sizeof(Vert)+4+12)*self._bufferAlloc, #+FOGCOORDS+TSLV
+                       self._array, gl.GL_STATIC_DRAW_ARB)
+
+
+  cdef void _sendUpdated(self) :
+    if self._updateRange.offset == -1 :
+      return
+    # If in the process of writing, wait until next cycle to send
+    #if not self._children.trylock() :         #future optimization happens here
+    #  return                                  #future optimization happens here
+    
+    # If the range to be updated is larger than the existing buffer
+    if self._updateRange.offset+self._updateRange.length > self._bufferAlloc :
+      self._bufferAlloc = self._arrayAlloc
+      gl.glBufferDataARB(gl.GL_ARRAY_BUFFER_ARB, (sizeof(Vert)+4+12)*self._bufferAlloc, #+FOGCOORDS+TSLV
+                         self._array, gl.GL_STATIC_DRAW_ARB)
+    else :
+      gl.glBufferSubDataARB(gl.GL_ARRAY_BUFFER_ARB,
+                            sizeof(Vert) * self._updateRange.offset,
+                            sizeof(Vert) * (self._updateRange.length+1),
+                            &self._array[self._updateRange.offset])
+    self._updateRange.offset = -1
+    self._updateRange.length = 0
+    #py.PyThread_release_lock(self._mutex)     #future optimization happens here
+
+
+  cdef void _allocArray(self, int _num) :
+    self._array = <Vert*> self._alloc(_num, &self._arrayAlloc, 
+                                      self._array, sizeof(Vert))
+    self._fogArray = <float*> self._alloc(_num, &self._fogSize,
+            self._fogArray, sizeof(float))
+    self._tslvArray = <float*> self._alloc(_num, &self._tslvSize,
+            self._tslvArray, 3*sizeof(float))
+
+
+  cdef void _calculateTSLV(self, void* __body) :
+    #
+    # Calculate TSLV (Tangent Space Light Vector)
+    #
+    cdef soy.bodies.Body _body
+    cdef soy.scenes.Scene        _scene
+    cdef soy.bodies.Light _light
+    cdef float                   _inv_mm[16]
+    cdef float                   _model_light_pos[3]
+    cdef float                   _vert_light_pos[3]
+    cdef float                   _binormal[3]
+    cdef float                   _lgt
+    cdef int                     _i
+
+    _body = <soy.bodies.Body> __body
+    _scene = <soy.scenes.Scene> _body._scene
+
+    if _scene._lights._current > 0 :
+      _light = <soy.bodies.Light> _scene._lights._list[0]
+      _body._getModelviewInv(_inv_mm)
+      #
+      # Vector by matrix multiplication by hand
+      # This code needs to average the light color and vector
+      #
+      _model_light_pos[0] = _inv_mm[0] * (_light._position[0] + _inv_mm[12]) \
+                          + _inv_mm[4] * (_light._position[1] + _inv_mm[13]) \
+                          + _inv_mm[8] * (_light._position[2] + _inv_mm[14]) 
+      _model_light_pos[1] = _inv_mm[1] * (_light._position[0] + _inv_mm[12]) \
+                          + _inv_mm[5] * (_light._position[1] + _inv_mm[13]) \
+                          + _inv_mm[9] * (_light._position[2] + _inv_mm[14]) 
+      _model_light_pos[2] = _inv_mm[2] * (_light._position[0] + _inv_mm[12]) \
+                          + _inv_mm[6] * (_light._position[1] + _inv_mm[13]) \
+                          + _inv_mm[10]* (_light._position[2] + _inv_mm[14])
+      #
+      # Assign values to each vertex in array
+      for _i from 0 <= _i < self._arraySize:
+        _vert_light_pos[0] = _model_light_pos[0] - self._array[_i].px
+        _vert_light_pos[1] = _model_light_pos[1] - self._array[_i].py
+        _vert_light_pos[2] = _model_light_pos[2] - self._array[_i].pz
+        #
+        _lgt = stdlib.sqrtf( _vert_light_pos[0] * _vert_light_pos[0] \
+                            +_vert_light_pos[1] * _vert_light_pos[1] \
+                            +_vert_light_pos[2] * _vert_light_pos[2] )
+        #
+        _vert_light_pos[0] = _vert_light_pos[0] / _lgt
+        _vert_light_pos[1] = _vert_light_pos[1] / _lgt
+        _vert_light_pos[2] = _vert_light_pos[2] / _lgt
+        #
+        _binormal[0] = self._array[_i].uy * self._array[_i].nz - \
+                       self._array[_i].uz * self._array[_i].ny
+        _binormal[1] = self._array[_i].uz * self._array[_i].nx - \
+                       self._array[_i].ux * self._array[_i].nz
+        _binormal[2] = self._array[_i].ux * self._array[_i].ny - \
+                       self._array[_i].uy * self._array[_i].nx
+        #              
+        self._tslvArray[3*_i+0] = ( _vert_light_pos[0] * self._array[_i].ux\
+                                   +_vert_light_pos[1] * self._array[_i].uy\
+                                   +_vert_light_pos[2] * self._array[_i].uz)
+        self._tslvArray[3*_i+1] = ( _vert_light_pos[0] * _binormal[0] \
+                                   +_vert_light_pos[1] * _binormal[1] \
+                                   +_vert_light_pos[2] * _binormal[2] )
+        self._tslvArray[3*_i+2] = ( _vert_light_pos[0] * self._array[_i].nx \
+                                   +_vert_light_pos[1] * self._array[_i].ny \
+                                   +_vert_light_pos[2] * self._array[_i].nz )
+        #self._tslvArray[3*_i + 0] = 0
+        #self._tslvArray[3*_i + 1] = 0
+        #self._tslvArray[3*_i + 2] = 1
+        if self._bufferAlloc:
+          gl.glBindBufferARB   (gl.GL_ARRAY_BUFFER_ARB, self._buffer)
+          gl.glBufferSubDataARB(gl.GL_ARRAY_BUFFER_ARB, 
+                                (sizeof(Vert)+4) * self._bufferAlloc,
+                                12*self._bufferAlloc, self._tslvArray )
+    #
+    # This code is misplaced!
+    #
+    # If no lights exist in the scene this needs to only be done once,
+    # not every render loop.  This is a waste of cpu cycles!
+    #else:
+    #  self._tslvArray[3*_i + 0] = 0
+    #  self._tslvArray[3*_i + 1] = 0
+    #  self._tslvArray[3*_i + 2] = 1

@@ -1,0 +1,195 @@
+# PySoy's _datatypes.AudioDeviceTuple
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: AudioDeviceList.pxi 900 2008-02-15 11:47:20Z ArcRiley $
+
+cdef class AudioDeviceTuple :
+  '''PySoy's AudioDeviceTuple
+
+    This is a tuple-like container class for returning available audio devices.
+    It's contents change automatically when audio devices are added or removed,
+    as will slices made from it as in the below example:
+
+      >>> mics = soy.audio.inputs
+      >>> print mics
+      ('ALSA Capture on default', 'ALSA Capture on NVidia nForce2', 
+       'OSS Capture')
+
+      # Plug in webcam w/ integrated mic, then:
+
+      >>> print mics
+      ('ALSA Capture on default', 'ALSA Capture on NVidia nForce2', 
+       'ALSA Capture on USB Camera', 'OSS Capture')
+
+      # Split tuple into 2 columns
+
+      >>> mics_col0 = mics[::2]
+      >>> mics_col1 = mics[1::2]
+      >>> mics_col0
+      ('ALSA Capture on default', 'ALSA Capture on USB Camera')
+      >>> mics_col1
+      ('ALSA Capture on NVidia nForce2', 'OSS Capture')
+
+      # Unplug webcam, then:
+
+      >>> mics_col0
+      ('ALSA Capture on default', 'OSS Capture')
+      >>> mics_col1
+      ('ALSA Capture on NVidia nForce2',)
+
+    :class:`soy.audio.outputs` and :class:`soy.audio.inputs` are standard 
+    instances of this class.  You may only create your own instances of 
+    this class by creating a slice of one of those two classes.
+  '''
+  
+  ############################################################################
+  #
+  # Python functions
+  #
+  
+  def __cinit__(self) :
+    self._slice = slice(None)
+
+  def __getitem__(self, index) :
+    cdef int               _o
+    cdef char*             _devices
+    cdef AudioDeviceTuple  _sliced
+    if not self._param :
+      raise EnvironmentError('this class is not designed for external use')
+    if type(index) == slice :
+      if index.step == 0 :
+        raise ValueError('slice step cannot be zero')
+      _sliced = AudioDeviceTuple()
+      _sliced._param = self._param
+      _sliced._slice = self._addSlice(index.start, index.stop, index.step)
+      return _sliced
+    if type(index) == int :
+      _devices = <char*> al.alcGetString(NULL, self._param)
+      _o = self._get(_devices, index)
+      if _o < 0 :
+        raise IndexError('audio device index out of range')
+      return '%s' % &_devices[_o]
+    raise TypeError('audio device indices must be integers')
+
+  def __getsliceobj__(self) :
+    return self._slice
+
+  def __len__(self) :
+    cdef int    _l
+    cdef object _range
+    if not self._param :
+      raise EnvironmentError('this class is not designed for external use')
+    _l = self._len(<char*> al.alcGetString(NULL, self._param))
+    _range = self._slice.indices(_l)
+    if _range[2] > 0 :
+      return (_range[2] - 1 + _range[1] - _range[0]) / _range[2]
+    else :
+      return (_range[2] + 1 + _range[1] - _range[0]) / _range[2]
+
+  def __repr__(self) :
+    if not self._param :
+      raise EnvironmentError('this class is not designed for external use')
+    return self.__str__()
+
+  def __str__(self) :
+    cdef int     _i, _l, _n, _o
+    cdef char*   _devices
+    cdef object  _string
+    cdef object  _range
+    if not self._param :
+      raise EnvironmentError('this class is not designed for external use')
+    _devices = <char*> al.alcGetString(NULL, self._param)
+    _string = ''
+    _l = self._len(_devices)
+    _range = self._slice.indices(_l)
+    if _range[2] > 0 :
+      _n = (_range[2] - 1 + _range[1] - _range[0]) / _range[2]
+    else :
+      _n = (_range[2] + 1 + _range[1] - _range[0]) / _range[2]
+
+    for _i from 0 <= _i < _n :
+      _o = self._get(_devices, _i)
+      _string = "%s'%s', " % (_string, &_devices[_o])
+    if _n == 1 :
+      return '(%s)' % _string[:-1]
+    else :
+      return '(%s)' % _string[:-2]
+  
+  ############################################################################
+  #
+  # C functions
+  #
+  
+  cdef int _get(self, char* _devices, int _index) :
+    cdef int _i, _l, _n
+    cdef object _range
+    _i = 0
+    _n = 0
+    _l = self._len(_devices)
+    if _index < 0  :
+      _index = _l + _index
+    _range = self._slice.indices(_l)
+    _index = _index * _range[2]
+    _index = _index + _range[0]
+    while (1) :
+      if _devices[_i] == 0 or _n == _range[1] :
+        return -1
+      if _n == _index :
+        return _i
+      _n = _n + 1
+      while 1 :
+        _i = _i + 1
+        if _devices[_i] == 0 :
+          _i = _i + 1
+          break
+
+  cdef int _len(self, char* _devices) :
+    cdef int          _i, _n
+    cdef object       _range
+    _i = 0
+    _n = 0
+    while (1) :
+      if ( _devices[_i] == 0 ) :
+        return _n
+      _n = _n + 1
+      while (1) :
+        _i = _i + 1
+        if ( _devices[_i] == 0 ) :
+          _i = _i + 1
+          break
+
+  cdef object _addSlice(self, 
+                        object _substart, object _substop, object _substep) :
+    cdef object _start, _stop, _step
+    _start = self._slice.start
+    _stop  = self._slice.stop
+    _step  = self._slice.step
+    if _start == None :
+      _start = _substart
+      if _substop != None :
+        _stop = _substop
+    else :
+      if _substop != None :
+        _stop = _start + _substop
+      if _substart :
+        _start = _start + _substart
+    if _substep :
+      if _step :
+        _step = _step * _substep
+      else :
+        _step = _substep
+    return slice(_start, _stop, _step)

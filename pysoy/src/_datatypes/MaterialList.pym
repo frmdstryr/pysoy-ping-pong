@@ -1,0 +1,118 @@
+# PySoy's _datatypes.MaterialList class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: MaterialList.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+# This class is not intended to be stored or transfered on it's own but
+# rather as part of it's parent Mesh.  Parent must be in __cinit__ as
+# it's parent holds the data this class works on.
+
+cdef class MaterialList (Datatype) :
+  '''soy._datatypes.MaterialList
+
+    This is a list-like container class for materials used by a :class:`soy.meshes.Mesh`
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+
+  def __cinit__(self, mesh) :
+    if not isinstance(mesh, soy.models.Mesh) :
+      raise TypeError('argument must be of type soy.bodies.Mesh')
+    self._mesh     = mesh
+    self._children = soy._internals.Children()
+    self._ranges   = NULL
+    self._hasBumps = 0
+
+
+  def __dealloc__(self) :
+    cdef int _i
+    self._children._iterStart()
+    for _i from 0 <= _i < self._children._current :
+      py.Py_DECREF(<object> self._children._list[_i])
+    self._children._iterDone()
+
+
+  def __len__(self) :
+    return self._children._current
+
+
+  def __str__(self) :
+    cdef int i
+    cdef object l
+    l = []
+    py.PyThread_acquire_lock(self._mesh._mutex, 1)
+    for i from 0 <= i < self._children._current :
+      l.append(<soy.materials.Material> self._children._list[i])
+    py.PyThread_release_lock(self._mesh._mutex)
+    return str(l)
+
+
+  def __repr__(self) :
+    return '<MaterialList with %d materials>' % self.__len__()
+
+
+  def __getitem__(self, _index) :
+    cdef soy.materials.Material _mat
+    py.PyThread_acquire_lock(self._mesh._mutex, 1)    
+    if _index < 0 :
+      _index = self._children._current + _index
+    if _index < 0 or _index >= self._children._current :
+      py.PyThread_release_lock(self._mesh._mutex)
+      raise IndexError('material index out of range')
+    _mat = <soy.materials.Material> self._children._list[_index]
+    py.PyThread_release_lock(self._mesh._mutex)
+    return _mat
+
+
+  ############################################################################
+  #
+  # WindowLoop functions
+  #
+
+  cdef void _render(self, void* body) :
+    cdef int _i, _pass
+    if self._children._current == 0 :
+      return
+
+    if self._hasBumps :
+      self._mesh._verts._calculateTSLV(body)
+
+    if self._mesh._faces._buffer == 0 :
+      self._mesh._faces._createBuffer()
+      self._mesh._verts._createBuffer()
+
+    self._mesh._faces._sendUpdated()
+    self._mesh._verts._render()
+    self._children._iterStart()
+    for _i from 0 <= _i < self._children._current :
+      _pass = 0
+      while (<soy.materials.Material> 
+             self._children._list[_i])._render(
+        _pass, <float*> 24, <float*> (52 * self._mesh._verts._bufferAlloc)) :
+        self._mesh._faces._render(self._ranges[_i].offset,
+                                  self._ranges[_i].length)
+        _pass += 1
+    self._children._iterDone()
+
+
+  cdef void _allocRanges(self, int num) :
+    self._ranges = <Range*> self._alloc(num, &self._rangesAlloc, 
+                                        self._ranges, sizeof(Range))
+

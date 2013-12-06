@@ -1,0 +1,146 @@
+# PySoy's textures.Print class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Print.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Print (Texture) :
+  '''PySoy textures.Print Class
+
+    This renders text using cairo.
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+
+  def __cinit__(self, text='', font='serif', 
+                background=None, foreground=None,
+                *args, **keywords) :
+    self._formats[3] = gl.GL_BGR
+    self._formats[4] = gl.GL_BGRA
+    self._resize(1, 4, 512, 256, 1)
+    #
+    # Get a surface and context
+    self._surface = cairo.cairo_image_surface_create_for_data (
+      self._texels + (self._chans * self._width * (self._height-1)),
+      cairo.CAIRO_FORMAT_ARGB32,
+      self._width,
+      self._height,
+      self._width*self._chans*-1 )
+    self._context = cairo.cairo_create(self._surface) 
+    #
+    # Set initial data (via properties)
+    if background :
+      self._background = background
+    else :
+      self._background = soy.colors.clear
+    if foreground :
+      self._foreground = foreground
+    else :
+      self._foreground = soy.colors.white
+    self.text = text
+    self.font = font
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+
+  property background :
+    def __get__(self) :
+      return self._background
+    def __set__(self, soy.colors.Color value) :
+      self._background = value
+      self._draw()
+
+
+  property foreground :
+    def __get__(self) :
+      return self._foreground
+    def __set__(self, soy.colors.Color value) :
+      self._foreground = value
+      self._draw()
+    
+    
+  property text :
+    def __get__(self) :
+      return self._text
+    def __set__(self, value) :
+      if type(value) == str :
+        self._text = value
+      else :
+        raise TypeError('Text must be a string')
+      self._draw()
+
+
+  property font :
+    def __get__(self) :
+      return self._font
+    def __set__(self, value) :
+      if type(value) != str :
+        raise TypeError('Text must be a string')
+      self._font = value      
+      self._draw()
+
+
+  ############################################################################
+  #
+  # C functions
+  #
+
+  cdef void _draw(self) :
+    #
+    # _draw is called whenever the colors, font, or text is modified.
+    # It uses Cairo to (re)draw the texture based on these parameters
+    # to self._texels which the WindowLoop will then update the texture from.
+    #
+    cdef gl.GLfloat* _bg
+    cdef gl.GLfloat* _fg
+    #
+    # Don't bother rendering if either the font or text don't exist
+    if not (self._font and self._text) :
+      return
+    #
+    # Lock against rendering
+    py.PyThread_acquire_lock(self._mutex,1)
+    #
+    # Clear the background
+    cairo.cairo_save(self._context)
+    _bg = (<soy.colors.Color> self._background)._rgba
+    cairo.cairo_set_source_rgba(self._context, _bg[0], _bg[1], _bg[2], _bg[3])
+    cairo.cairo_set_operator(self._context, cairo.CAIRO_OPERATOR_SOURCE)
+    cairo.cairo_paint(self._context)
+    cairo.cairo_restore(self._context)
+    #
+    # Now draw
+    cairo.cairo_select_font_face(self._context,
+                                 self._font,
+                                 cairo.CAIRO_FONT_SLANT_NORMAL, 
+                                 cairo.CAIRO_FONT_WEIGHT_BOLD)
+    cairo.cairo_set_font_size(self._context, 32.0)
+    _fg = (<soy.colors.Color> self._foreground)._rgba
+    cairo.cairo_set_source_rgba(self._context, _fg[0], _fg[1], _fg[2], _fg[3])
+    cairo.cairo_move_to(self._context, 10.0, 50.0)
+    cairo.cairo_show_text(self._context, self._text)
+    #
+    # By setting the _update flag we cause self._texels to be re-sent to GPU
+    self._update = 1
+    #
+    # Release the lock
+    py.PyThread_release_lock(self._mutex)

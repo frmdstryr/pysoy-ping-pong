@@ -1,0 +1,151 @@
+# PySoy _datatypes.FaceList class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: FaceList.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class FaceList (Datatype) :
+  '''soy._datatypes.FaceList
+
+    This is a list-like container class for the faces of a :class:`soy.bodies.Mesh`
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+
+  def __cinit__(self, mesh) :
+    if not isinstance(mesh, soy.models.Mesh) :
+      raise TypeError('argument must be of type soy.models.Mesh')
+    self._mesh = mesh
+    self._children = soy._internals.Children()
+
+
+  def __len__(self) :
+    return self._arraySize
+
+
+  def __str__(self) :
+    return '<FaceList with %d faces>' % self.__len__()
+
+
+  def __repr__(self) :
+    return '<FaceList with %d faces>' % self.__len__()
+
+
+  def __getitem__(self, _index) :
+    cdef int i, _found
+    cdef soy.atoms.Face _face
+    #
+    # Check to see if there's already a Face instance made, if so return it,
+    # otherwise create a new instance and return that.  We do this to prevent
+    # duplicate Face instances and to prevent having to internally hold an
+    # instance of every face in every mesh - that'd eat way too much memory.
+    #
+    _found = 0
+    py.PyThread_acquire_lock(self._mesh._mutex, 1)
+    if _index < 0 :    
+      _index = self._arraySize + _index
+    if _index < 0 or _index >= self._arraySize :
+      py.PyThread_release_lock(self._mesh._mutex)
+      raise IndexError('face index out of range')
+    for i from 0 <= i < self._children._current :
+      if (<soy.atoms.Face> self._children._list[i])._index == _index :
+        _face = <soy.atoms.Face> self._children._list[i]
+        _found = 1
+        break
+    py.PyThread_release_lock(self._mesh._mutex)
+    if not _found :
+      _face = soy.atoms.Face(mesh = self._mesh, index = _index)
+    return _face
+
+
+  ############################################################################
+  #
+  # General C functions
+  #
+
+  cdef void _flagUpdated(self, int _offset, int _length) :
+    cdef int _top
+    cdef int _start
+    if self._updateRange.length == 0 :
+      self._updateRange.offset = _offset
+      self._updateRange.length = _length
+    else :
+      if _offset < self._updateRange.offset :
+        _start = _offset
+      else :
+        _start = self._updateRange.offset
+      if _offset+_length > self._updateRange.offset+self._updateRange.length :
+        _top = _offset + _length
+      else :
+        _top = self._updateRange.offset + self._updateRange.length
+      self._updateRange.offset = _start
+      self._updateRange.length = _top - _start
+
+
+  ############################################################################
+  #
+  # WindowLoop functions
+  #
+  
+  cdef void _render(self, int _offset, int _length) :
+    gl.glDrawElements (gl.GL_TRIANGLES, _length*3,
+                       gl.GL_UNSIGNED_SHORT, (<Face*> 0) + _offset)
+
+
+  cdef void _renderBumpPass(self, int _offset, int _length):
+    gl.glDrawElements (gl.GL_TRIANGLES, _length*3,
+                       gl.GL_UNSIGNED_SHORT, (<Face*> 0) + _offset)
+
+
+  cdef void _createBuffer(self) :
+    self._bufferAlloc = self._arrayAlloc
+    self._updateRange.length = 0
+    gl.glGenBuffersARB(1, &self._buffer)
+    gl.glBindBufferARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, self._buffer)
+    gl.glBufferDataARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, 6*self._bufferAlloc,
+                       self._array, gl.GL_STATIC_DRAW_ARB)
+
+
+  cdef void _sendUpdated(self) :
+    gl.glBindBufferARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, self._buffer)
+    if self._updateRange.length == 0 :
+      return
+    # If in the process of writing, wait until next cycle to send
+    #if not self._children.trylock() :         #future optimization happens here
+    #  return                                  #future optimization happens here
+    # If the range to be updated is larger than the existing buffer
+    if self._updateRange.offset+self._updateRange.length > self._bufferAlloc :
+      self._bufferAlloc = self._arrayAlloc
+      gl.glBufferDataARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB, 6*self._bufferAlloc,
+                         self._array, gl.GL_STATIC_DRAW_ARB)
+    else :
+      gl.glBufferSubDataARB(gl.GL_ELEMENT_ARRAY_BUFFER_ARB,
+                            6 * self._updateRange.offset,
+                            6 * (self._updateRange.length+1),
+                            &self._array[self._updateRange.offset])
+    self._updateRange.length = 0
+    py.PyThread_release_lock(self._mesh._mutex)
+
+
+  cdef void _allocArray(self, int num) :
+    self._array = <Face*> self._alloc(num, &self._arrayAlloc,
+                                       self._array, sizeof(Face))
+    self._arrayList = <unsigned int*> self._alloc(num, &self._arrayAlloc,
+                                                   self._arrayList, 4)
+

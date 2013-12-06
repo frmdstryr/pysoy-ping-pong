@@ -1,0 +1,4 @@
+# encoding: utf-8
+
+bld.install_files('${PREFIX}/include/soy-1', bld.path.ant_glob('**/*.h'))
+

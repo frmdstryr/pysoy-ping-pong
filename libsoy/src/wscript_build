@@ -1,0 +1,21 @@
+# encoding: utf-8
+source = ['init.c'] + bld.path.ant_glob('**/*.gs **/*.orc')
+uselib = ['DBUS_GLIB', 'GEE', 'RSVG', 'LM', 'NICE', 'BLUEZ', 'GL', 'ODE']
+packages = ['config', 'gles-1.1', 'gee-1.0', 'cairo', 'gdk-2.0', 'librsvg-2.0',
+            'ode-0.11',
+            'posix','bluez', 'loudmouth-1.0', 'nice','libusb','dbus-glib-1']
+
+libsoy = bld(
+  features     = 'c cshlib',
+  name         = 'soy-1',
+  target       = 'soy',
+  pkg_name     = 'soy',
+  uselib       = uselib,
+  packages     = packages,
+  vapi_dirs    = '../vapi',
+  includes     = '../include',
+  cflags       = ['-include', 'config.h', '-DGL_GLEXT_PROTOTYPES', '-g'],
+  source       = source,
+  vala_defines = bld.env.VALA_DEFINES
+)
+

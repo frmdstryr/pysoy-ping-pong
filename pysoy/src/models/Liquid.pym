@@ -1,0 +1,229 @@
+# PySoy's models.Liquid class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Liquid.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Liquid (Model) :
+  '''soy.models.Liquid
+
+    This :class:`~soy.model.Model` renders a liquid with volumetric fog
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+  
+  def __cinit__(self, size=(1,1,1), color=None, material=None) :
+    self._size[0] = size[0]
+    self._size[1] = size[1]
+    self._size[2] = size[2]
+    #
+    # Set Color
+    if color :
+      if not isinstance(color, soy.colors.Color) :
+        raise TypeError('color must be an instance of soy.colors.Color')
+      self._color = color
+    else :
+      import soy.colors
+      self._color = soy.colors.blue
+    #
+    # Set Material
+    if material :
+      if not isinstance(material, soy.materials.Material) :
+        raise TypeError('material is not an instance of soy.materials.Material')
+      self._material = material
+    else :
+      import soy.materials
+      self._material = soy.materials.StainlessSteel()
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+
+  property size:
+    def __get__(self):
+      return (self._size[0], self._size[1], self._size[2])
+
+    def __set__(self, value):
+      self._size[0] = value[0]
+      self._size[1] = value[1]
+      self._size[2] = value[2]
+
+
+  property material :
+    def __get__(self):
+      return self._material
+
+    def __set__(self, value):
+      self._material = value
+
+
+  ############################################################################
+  #
+  # WindowLoop Functions
+  #
+
+  cdef void _render(self, soy.bodies.Body _body) :
+    cdef int                _i
+    cdef ode.dReal*         _pos
+    cdef float              _halfSize[3]
+    cdef gl.GLfloat         _mtx[16]
+    #
+    ######################################
+    #
+    # set model's matrix
+    #
+    _mtx[0]  = _body._rotation[0]
+    _mtx[1]  = _body._rotation[4]
+    _mtx[2]  = _body._rotation[8]
+    _mtx[3]  = 0.0
+    _mtx[4]  = _body._rotation[1]
+    _mtx[5]  = _body._rotation[5]
+    _mtx[6]  = _body._rotation[9]
+    _mtx[7]  = 0.0
+    _mtx[8]  = _body._rotation[2]
+    _mtx[9]  = _body._rotation[6]
+    _mtx[10] = _body._rotation[10]
+    _mtx[11] = 0.0
+    _mtx[12] = _body._position[0]
+    _mtx[13] = _body._position[1]
+    _mtx[14] = _body._position[2]
+    _mtx[15] = 1.0
+    #
+    ######################################
+    #
+    # save current matix before setting it
+    #
+    gl.glPushMatrix()
+    gl.glMultMatrixf(_mtx)
+    #
+    ######################################
+    #
+    # render liquid surface and bottom
+    #
+    _pos = _body._position
+    _halfSize[0] = self._size[0]/2.0
+    _halfSize[1] = self._size[1]/2.0
+    _halfSize[2] = self._size[2]/2.0
+    gl.glClearStencil(0)
+    gl.glEnable(gl.GL_STENCIL_TEST)
+    gl.glClear(gl.GL_STENCIL_BUFFER_BIT)
+    gl.glStencilFunc(gl.GL_NEVER, 0, 0)
+    gl.glStencilOp(gl.GL_INCR, gl.GL_INCR, gl.GL_INCR)
+    self._renderSurf()
+    gl.glStencilFunc(gl.GL_EQUAL, 1, 1)
+    gl.glStencilOp(gl.GL_KEEP, gl.GL_KEEP, gl.GL_KEEP)
+    gl.glDisable(gl.GL_DEPTH_TEST)
+    self._renderBottom()
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    #
+    ######################################
+    #
+    # return to camera matrix
+    #
+    gl.glPopMatrix()
+    #
+    ######################################
+    #
+    # render each body inside the liquid
+    #
+    gl.glEnable(gl.GL_FOG)
+    gl.glEnableClientState(gl.GL_FOG_COORDINATE_ARRAY_EXT)
+    gl.glFogi(gl.GL_FOG_MODE, gl.GL_LINEAR)
+    gl.glFogfv(gl.GL_FOG_COLOR, (<soy.colors.Color> self._color)._rgba)
+    gl.glFogf(gl.GL_FOG_START, pos[1] + _halfSize[1])
+    gl.glFogf(gl.GL_FOG_END, pos[1] - _halfSize[1])
+    gl.glHint(gl.GL_FOG_HINT, gl.GL_NICEST)
+    gl.glFogi(gl.GL_FOG_COORDINATE_SOURCE_EXT, gl.GL_FOG_COORDINATE_EXT)
+    #
+    # We need not _iterStart here since _bodies is already iterating via Scene
+    for _i from 0 <= _i < _body._scene._bodies._current :
+      if (<void*> _body != (_body._scene._bodies._list[_i]) and 
+          (<soy.bodies.Body> 
+           _body._scene._bodies._list[_i])._model is not None) :
+        (<soy.bodies.Body> 
+         _body._scene._bodies._list[_i])._model._calcFogCoords(
+          (<soy.bodies.Body> _body._scene._bodies._list[_i]))
+        (<soy.bodies.Body> 
+         _body._scene._bodies._list[_i])._model._render(
+          (<soy.bodies.Body> _body._scene._bodies._list[_i]))
+    gl.glDisableClientState(gl.GL_FOG_COORDINATE_ARRAY_EXT)
+    gl.glDisable(gl.GL_FOG)
+    #
+    ######################################
+    #
+    # save current matix before setting it
+    #
+    gl.glPushMatrix()
+    gl.glMultMatrixf(_mtx)
+    self._material._coreBind()
+    self._renderSurf()
+    self._material._coreUnBind()
+    gl.glDisable(gl.GL_STENCIL_TEST)
+    #
+    ######################################
+    #
+    # return to camera matrix
+    #
+    gl.glPopMatrix()
+    #
+    ######################################
+
+
+  cdef void _renderSurf(self) :
+    cdef float _halfSize[3]
+    _halfSize[0] = self._size[0]/2.0
+    _halfSize[1] = self._size[1]/2.0
+    _halfSize[2] = self._size[2]/2.0
+    gl.glBegin(gl.GL_TRIANGLES)
+    gl.glNormal3f(0, 1, 0) #LIQUID FACE
+    gl.glTexCoord2f(0,1)
+    gl.glVertex3f(-_halfSize[0], _halfSize[1], _halfSize[2] )
+    gl.glTexCoord2f(1,1)
+    gl.glVertex3f( _halfSize[0], _halfSize[1], _halfSize[2] )
+    gl.glTexCoord2f(1,0)
+    gl.glVertex3f( _halfSize[0], _halfSize[1],-_halfSize[2] )
+    gl.glTexCoord2f(1,0)
+    gl.glVertex3f( _halfSize[0], _halfSize[1],-_halfSize[2] )
+    gl.glTexCoord2f(0,0)
+    gl.glVertex3f(-_halfSize[0], _halfSize[1],-_halfSize[2] )
+    gl.glTexCoord2f(0,1)
+    gl.glVertex3f(-_halfSize[0], _halfSize[1], _halfSize[2] )
+    gl.glEnd()
+
+  cdef void _renderBottom(self) :
+    cdef float       _halfSize[3]
+    _halfSize[0] = self._size[0]/2.0
+    _halfSize[1] = self._size[1]/2.0
+    _halfSize[2] = self._size[2]/2.0
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glColor3f((<soy.colors.Color> self._color)._rgba[0],
+                 (<soy.colors.Color> self._color)._rgba[1],
+                 (<soy.colors.Color> self._color)._rgba[2])
+    gl.glBegin(gl.GL_TRIANGLES)
+    gl.glNormal3f(0, 1, 0) #LIQUID FACE
+    gl.glVertex3f(-1000, -_halfSize[1], 1000 )
+    gl.glVertex3f( 1000, -_halfSize[1], 1000 )
+    gl.glVertex3f( 1000, -_halfSize[1],-1000 )
+    gl.glVertex3f( 1000, -_halfSize[1],-1000 )
+    gl.glVertex3f(-1000, -_halfSize[1],-1000 )
+    gl.glVertex3f(-1000, -_halfSize[1], 1000 )
+    gl.glEnd()
+    gl.glEnable(gl.GL_LIGHTING)

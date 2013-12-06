@@ -1,0 +1,229 @@
+# PySoy's materials._normalisationCubemap function
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: _normalisationCubemap.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cimport stdlib
+cimport soy.textures
+
+cdef void _normalisationCubemap(soy.textures.Texture _cubemap) :
+  cdef int _i, _j
+  cdef float _length
+  cdef float _vector[3]
+  cdef unsigned char* _ptr
+  #
+  ########################################
+  #
+  # call the texture's _resize function
+  #
+  # This sets up many of the textures parameters and mallocs _texels
+  # In the future the first array (bytes) should be 4 for float, which should
+  # not only speed this up a bit but provide more accurate normalisation
+  #
+  _cubemap._resize(1, 3, 32, 32, 6)
+  #
+  ########################################
+  #
+  # initialize _ptr to the texture's _texels
+  #
+  # we use _ptr to scan over the _texels data as it's generated, which is
+  # slightly faster than using _ptr as an int and adding it many times, ie:
+  #   _ptr[0] = <unsigned char> (_vector[0] * 255)
+  #   _ptr[1] = <unsigned char> (_vector[1] * 255)
+  #   _ptr[2] = <unsigned char> (_vector[2] * 255)
+  #   _ptr = _ptr + 3
+  #
+  #  vs the slower
+  #
+  #   _cubemap._texels[_ptr  ] = <unsigned char> (_vector[0] * 255)
+  #   _cubemap._texels[_ptr+1] = <unsigned char> (_vector[0] * 255)
+  #   _cubemap._texels[_ptr+2] = <unsigned char> (_vector[0] * 255)
+  #   _ptr = _ptr + 3
+  # 
+  _ptr = _cubemap._texels
+  #
+  ############################################################################
+  #
+  # This following code was derived from "Normalisation Cube Map.cpp"
+  # from http://paulsprojects.net/tutorials/simplebump/simplebump.html
+  #
+  # Copyright (c) 2006, Paul Baker
+  # All rights reserved.
+  #
+  # Redistribution and use in source and binary forms, with or without
+  # modification, are permitted provided that the following conditions are met:
+  #
+  #  * Redistributions of source code must retain the above copyright notice,
+  #    this list of conditions and the following disclaimer.
+  #  * Redistributions in binary form must reproduce the above copyright
+  #    notice, this list of conditions and the following disclaimer in the
+  #    documentation and/or other materials provided with the distribution.
+  #  * Neither the name of paulsprojects.net nor the names of its contributors
+  #    may be used to endorse or promote products derived from this software
+  #    without specific prior written permission.
+  #
+  # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  # LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  # CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  # SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  # INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  # POSSIBILITY OF SUCH DAMAGE.
+  #
+  ########################################
+  #
+  # +X
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] =  16.0
+      _vector[1] = -(_j + 0.5 - 16.0)
+      _vector[2] = -(_i + 0.5 - 16.0)
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ########################################
+  #
+  # -X
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] = -16.0
+      _vector[1] = -(_j + 0.5 - 16.0)
+      _vector[2] =  (_i + 0.5 - 16.0)
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ########################################
+  #
+  # +Y
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] =  (_i + 0.5 - 16.0)
+      _vector[1] =  16.0
+      _vector[2] =  (_j + 0.5 - 16.0)
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ########################################
+  #
+  # -Y
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] =  (_i + 0.5 - 16.0)
+      _vector[1] = -16.0
+      _vector[2] = -(_j + 0.5 - 16.0)
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ########################################
+  #
+  # +Z
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] =  (_i + 0.5 - 16.0)
+      _vector[1] = -(_j + 0.5 - 16.0)
+      _vector[2] =  16.0
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ########################################
+  #
+  # -Z
+  # 
+  for _j from 0 < _j <= 32:
+    for _i from 0 < _i <= 32:
+      _vector[0] = -(_i + 0.5 - 16.0)
+      _vector[1] = -(_j + 0.5 - 16.0)
+      _vector[2] = -16.0
+
+      _length = stdlib.sqrtf( _vector[0] * _vector[0] + 
+                              _vector[1] * _vector[1] + 
+                              _vector[2] * _vector[2] )
+
+      _vector[0] = 0.5 * (_vector[0] / _length) + 0.5
+      _vector[1] = 0.5 * (_vector[1] / _length) + 0.5
+      _vector[2] = 0.5 * (_vector[2] / _length) + 0.5
+
+      _ptr[0] = <unsigned char> (_vector[0] * 255)
+      _ptr[1] = <unsigned char> (_vector[1] * 255)
+      _ptr[2] = <unsigned char> (_vector[2] * 255)
+      _ptr = _ptr + 3
+  #
+  ############################################################################

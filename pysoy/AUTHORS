@@ -1,0 +1,48 @@
+Team PySoy
+==========
+These are the the people, past and present, who have made PySoy possible.  
+
+New developers should add themselves to this list.
+
+
+Current Developers
+------------------
+Arc Riley
+Alex Light
+David Czech
+Davy Wybiral
+Derek Rhodes
+Eric Stein
+Evan Cofsky
+Jon Neal
+Kirk McDonald
+Juhani Åhman
+
+
+Past Developers
+---------------
+Angelo Theodorou
+Blaine Gilliam
+Buddha Buck
+Jaroslaw Tworek
+Jason Ward
+Jeremy Moles
+Mike Beckson
+Palle Raabjerg
+Nate Thompson
+Seth Thompson
+Shriphani Palakodety
+Tom Sidwick
+Zach Miller
+
+
+Contributors
+------------
+Greg Ewing - for his help with Pyrex issues and the langage itself
+Piet Delport - for considerable help with Pyrex-related issues over 2+ years
+
+
+Special Thanks
+--------------
+Richard "Doc" Kinne - for numerous financial contributions
+Peter Dobratz - for donating a Mac Radeon card, enabling faster OSX porting

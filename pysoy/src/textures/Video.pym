@@ -1,0 +1,138 @@
+# PySoy's textures.Video class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Video.pym 1462 2009-01-11 05:26:23Z ArcRiley $
+
+
+cdef class Video (Texture) :
+  '''PySoy textures.Video Class
+
+    Renders an Ogg Theora stream to a texture
+  '''
+
+  ############################################################################
+  #
+  # C functions
+  #
+  
+  cdef int _load(self, void* _data, int _size) nogil :
+    cdef int             _y
+    cdef ogg.ogg_page*   _page
+    cdef ogg.yuv_buffer  _yuv
+    cdef ogg.ogg_packet  _packet
+    cdef double          _start  # for benchmarking
+    if _data == NULL :
+      stdio.printf('done decoding.\n')
+      if self._stage > 0 :
+        ogg.ogg_stream_clear(&self._stream)
+        ogg.theora_info_clear(&self._info)
+        ogg.theora_comment_clear(&self._comment)
+        ogg.theora_clear(&self._decode)
+      return 0
+    _page = <ogg.ogg_page*> _data
+    #
+    # For Chaining/Looping
+    if ogg.ogg_page_bos(_page) :
+      if self._stage > 0 :
+        ogg.ogg_stream_clear(&self._stream)
+        ogg.theora_info_clear(&self._info)
+        ogg.theora_comment_clear(&self._comment)
+        ogg.theora_clear(&self._decode)
+        self._startTime = self._startTime + self._frameTime
+        self._frameTime = 0
+      else :
+        self._startTime = _time()
+      self._stage = 0
+    #
+    # Read Page 0
+    if self._stage == 0 :
+      ogg.ogg_stream_init(&self._stream, ogg.ogg_page_serialno(_page))
+      ogg.theora_info_init(&self._info)
+      ogg.theora_comment_init(&self._comment)
+      self._stage = 1
+    # Read in the page if not -1
+    if self._stage > 0 :
+      ogg.ogg_stream_pagein(&self._stream, _page)
+    # Read pre-data pages (if any)
+    if self._stage == 1 :
+      if ogg.ogg_page_granulepos(_page) == 0 :
+        while ogg.ogg_stream_packetout(&self._stream, &_packet) :
+          if ogg.theora_decode_header(&self._info, &self._comment,&_packet)<0 :
+            # Error in header, clear what we've setup and bail
+            ogg.ogg_stream_clear(&self._stream)
+            ogg.theora_info_clear(&self._info)
+            ogg.theora_comment_clear(&self._comment)
+            self._stage = -1
+            return 0
+        if ogg.ogg_page_pageno(_page) == 0 :
+          #
+          # Resize for RGBX then set self._chans to RGB to ignore the X
+          self._resize(1, 4, self._squareup(self._info.frame_width),
+                          self._squareup(self._info.frame_height), 1)
+          self._chans = 3
+          self._scaleX = <float> self._info.frame_width  / <float> self._width
+          self._scaleY = <float> self._info.frame_height / <float> self._height
+          self._aspect = ( <float> self._info.frame_width / \
+                           <float> self._info.frame_height ) * \
+                         ( <float> self._info.aspect_numerator / \
+                           <float> self._info.aspect_denominator )
+      else :
+        ogg.theora_decode_init(&self._decode, &self._info)
+        self._stage = 2
+    if self._stage == 2 :
+      # Theora frames are 1:1 with Ogg packets, but packets != pages
+      while ogg.ogg_stream_packetout(&self._stream, &_packet) :
+        ogg.theora_decode_packetin(&self._decode, &_packet)
+        self._frameTime = ogg.theora_granule_time(&self._decode, 
+                                              ogg.ogg_page_granulepos(_page))
+        ogg.theora_decode_YUVout(&self._decode, &_yuv)
+        #
+        # This can and should be optimized further
+        #_start = _time()
+        for _y from 0 <= _y < self._info.frame_height :
+          oil.oil_yuv2rgbx_sub2_u8(
+            self._texels + ((self._info.frame_height - _y) * self._width * 4),
+            _yuv.y + ( _y * _yuv.y_stride),
+            _yuv.u + ((_y / 2) * _yuv.uv_stride),
+            _yuv.v + ((_y / 2) * _yuv.uv_stride),
+            self._info.frame_width)
+        self._update = 1
+    return 1
+
+
+  cdef int _save(self, void *_data, int _size) nogil :
+    cdef ogg.ogg_page   *_page
+    _page = <ogg.ogg_page*> _data
+    return 1
+
+
+  cdef int _ready(self) nogil :
+    cdef double  _now
+    _now = _time()
+    if self._startTime + self._frameTime < _now :
+      return 1
+    return 0
+
+
+  ############################################################################
+  #
+  # Properties
+  #
+  
+  property offset :
+    def __get__(self) :
+      return self._frameTime

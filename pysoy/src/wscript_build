@@ -1,0 +1,14 @@
+#! /usr/bin/env python3
+# encoding: utf-8
+source = bld.path.ant_glob('**/*.c')
+uselib = ['SOY', 'X11', 'XI', 'XXF86VM', 'EGL']
+
+pysoy = bld(
+  features     = 'c cshlib pyext',
+  target       = 'soy',
+  uselib       = uselib,
+  includes     = '../include',
+  cflags       = ['-g'],
+  source       = source
+)
+

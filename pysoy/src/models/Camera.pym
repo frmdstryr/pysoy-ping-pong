@@ -1,0 +1,61 @@
+# PySoy's models.Camera class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Camera.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Camera(Mesh) :
+  '''soy.models.Camera
+
+    This class renders a "camera", intended for debugging purposes.
+  '''
+
+
+  ############################################################################
+  #
+  # WindowLoop Functions
+  #
+
+  cdef void _render(self, soy.bodies.Body _body) :
+    gl.glPushMatrix()
+    gl.glScalef(0.1,0.1,0.1)
+    gl.glDisable(gl.GL_CULL_FACE)
+    gl.glDisable(gl.GL_DEPTH_TEST)
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glColor3f(0.5,0.5,0.5)
+    gl.glBegin(gl.GL_LINE_STRIP)
+    gl.glVertex3f(-1,1.,1.)
+    gl.glVertex3f(1,1.,1.)
+    gl.glVertex3f(1,-1.,1.)
+    gl.glVertex3f(-1,-1.,1.)    
+    gl.glEnd()
+    gl.glColor3f(0.5,0.5,0.5)
+    gl.glBegin(gl.GL_LINES)    
+    gl.glVertex3f(-1,1.,1.)
+    gl.glVertex3f(0,0,0)
+    gl.glVertex3f(1,1.,1.)
+    gl.glVertex3f(0,0,0)
+    gl.glVertex3f(-1,-1.,1.)
+    gl.glVertex3f(0,0,0)
+    gl.glVertex3f(1,-1.,1.)
+    gl.glVertex3f(0,0,0)
+    gl.glVertex3f(-1,-1.,1.)
+    gl.glVertex3f(-1,1.,1.)
+    gl.glEnd()
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_CULL_FACE) 
+    gl.glPopMatrix()

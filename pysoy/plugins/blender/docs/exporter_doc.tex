@@ -1,0 +1,64 @@
+\input{preamble.tex}
+\begin{document}
+\section*{The Framework}
+The ``framework'' of the \texttt{soy\_export.py} script consists in part of a few parent classes and some conventions for some groups of classes. Namely the \texttt{WriteData} class, which is the parent class of all the \texttt{Write*} classes. And both the \texttt{Write*} classes and the \texttt{Grab*} classes have a number of conventions that should be upheld.
+
+\subsection*{The \texttt{WriteData} class}
+The \texttt{WriteData} class contains two methods, \texttt{self.accumulate} and \texttt{self.write}.
+
+The \texttt{self.accumulate} method assume the existence of the attributes \\ \texttt{self.accumulated}, \texttt{self.objecttype}, and \texttt{self.Blocks}.
+
+\texttt{self.accumulate} is responsible for accumulating the data of a single block into a string. Given a 2-tuple containing the name of the blocktype, and the data to be accumulated, it finds the correct method for packing the data in the \texttt{self.Blocks} dictionary, runs the data through this method, and adds it to the \texttt{self.accumulated} string with the appropriate block header, created from the \texttt{self.objecttype} attribute, the \texttt{blockid} value extracted from \texttt{self.Blocks} and the length of the data string, indicating the size of the block.
+
+The \texttt{self.write} method assume the existence of the attributes \texttt{self.file}, \texttt{self.name}, \texttt{self.objecttype}, \texttt{self.version}, and \texttt{self.accumulated}.
+
+\texttt{self.write} is responsible for writing the accumulated data to the file object contained in \texttt{self.file}. From the above attributes and the length of \texttt{self.accumulated}, it writes the appropriate object header and the string containing all the object data from \texttt{self.accumulated}.
+
+\texttt{WriteData} also contains a number of methods used by \texttt{self.Blocks} for signifying how to write the different block types. Some of these methods are used by several \texttt{Write*} classes, and some are used by only one. There may be room for some improvement in this respect.
+
+\subsection*{The \texttt{Write*} classes}
+All \texttt{Write*} classes inherit from \texttt{WriteData} and are responsible for initializing and containing all the data the \texttt{WriteData.accumulate} and \texttt{WriteData.write} methods need. Each \texttt{Write*} class contains the following:
+
+\begin{itemize}
+\item \texttt{self.Blocks}: Dictionary. Each key is the name of a block type. Each item is a 2-tuple containing the block ID number and the function used for accumulating/packing the data of that block.
+\item \texttt{self.name}: String. Initialized on instantiation. The name of the object itself.
+\item \texttt{self.objecttype}: Integer. The object type ID.
+\item \texttt{self.version}: 2-tuple of Integers. The major and minor version of this block.
+\item \texttt{self.file}: File object. Initialized on instantiation. The file to write to.
+\item \texttt{self.accumulated}: String. Data accumulated for this object.
+\end{itemize}
+
+Each \texttt{Write*} class is instantiated and used by one or more \texttt{Grab*} classes.
+
+\subsection*{The \texttt{Grab*} classes}
+The \texttt{Grab*} classes unfortunately don't always follow strict guidelines on ``how to do stuff''. Each class may have some of its own oddities. But I will try to explain some of the requirements and main purposes of these classes here.
+
+The main purpose of a \texttt{Grab*} class is to obtain, sometimes convert, and then store the information of a .soy object in a way that makes it easy to write by the help of a \texttt{Write*} class. In general, you could say that a \texttt{Grab*} class should contain a number of \texttt{self.Grab*} methods made to ``Grab'' the information for each block. Then the \texttt{self.\_\_init\_\_} and \texttt{self.\_\_call\_\_} method of the class will call these \texttt{Grab*} methods as appropriate.
+
+The \texttt{self.\_\_call\_\_} method should be used when you are finished treating the data externally, for instance, and want to write the data to the file. Because in some cases, the data of one object is dependent on the data of other objects.
+
+\subsubsection*{The \texttt{ConjureNode} class}
+Take \texttt{ConjureNode}, for instance. This is a bit of a special case class. Technically, it is in the group of \texttt{Grab*} classes, but \texttt{ConjureNode} never retrieves any data directly from the blender API. This is because first, the Blender API does not contain the notion of a ``Node'' in the traditional sense. Blender uses a ``parent''/``child'' structure which can be used, though. However, secondly, a blender ``parent'' object does not know any of its ``children'' objects. This makes it impossible to decide whether a blender Object is a ``parent'' until we have already iterated through all Objects once.
+
+\texttt{ConjureNode} creates a \texttt{ReadNode} object from an \texttt{ReadEntity} which has been discovered to have children. It will then add the \texttt{ReadEntity} object to its list of childs and assign the \texttt{ReadEntity} a 4x4 unit matrix.
+
+\section*{The Interface}
+The interface is handled by the \texttt{ExportDialog} class.
+
+\texttt{ExportDialog} inherits from \texttt{DialogGrid}. \texttt{DialogGrid} is just meant to provide us with a few methods for easing the creation and modification of the interface. Namely, it is used for reducing the granularity of the coordinate system so we can work in columns and lines, and turning the y axis upside down, so (0, 0) is in the upper left corner.
+
+\texttt{ExportDialog} contains three methods which are given as arguments to \texttt{Blender.Draw.Register}:
+\begin{itemize}
+\item \texttt{self.DrawDialog}: Called every time the interface is redrawn.
+\item \texttt{self.KeyEvent}: Called every time the users presses a key on the keyboard.
+\item \texttt{self.ButtonEvent}: Called every time the user uses something in the interface.
+\end{itemize}
+
+In addition, \texttt{ExportDialog} contains \texttt{self.DataGroup}, an inner class created to avoid duplication of a relatively large amount of code. This is used once for each .soy object type. It is used for drawing the boxes determining the level of filesplitting for that object type.
+
+For actual export, the interface calls one of two methods, either \\ \texttt{self.ModelExporter} or \texttt{self.LevelExporter}. \texttt{ModelExporter} Exports all groups as singular mesh objects, and uses \texttt{self.ExportGroup} to export each group. \texttt{self.LevelExporter} exports either one or all scenes in blender as .soy levels. That is, a top Node in its own file, describing the level, together with all the associated data, either in that same file, or organized in a directory structure. It uses \texttt{self.ExportScene} to export each scene.
+
+\texttt{treatObject} and \texttt{bindNodes} are two special case functions. These are called from the \texttt{ExportDialog}'s \texttt{self.ExportScene} method. \texttt{treatObject} is called for every object in a scene. It's role is to find if an Object is merely an instantiated Group, and if not, to determine if a \texttt{MeshReader} was already created for that particular mesh. It also handles the first step of the parenting Node/child process by creating a dictionary of objects that are discovered as being parents.
+
+The second and third steps of parenting is performed in \texttt{bindNodes}, which first links all the parents to their childs in the script's native data structure, and finally creates all the Nodes.
+\end{document}

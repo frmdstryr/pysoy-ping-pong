@@ -1,0 +1,132 @@
+# PySoy's materials postinit
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: _postinit.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+##############################################################################
+# 
+# this cubemap is universal to many material effects
+#
+from soy import textures
+_normalisation_cube_map = soy.textures.Texture()
+_normalisationCubemap(_normalisation_cube_map)
+del(textures)
+#
+##############################################################################
+#
+# temporarily import colors and set some default extension-level materials
+#
+from soy import colors
+#
+#######################################
+#
+# green aventurine
+#
+aventurine = \
+  Material(ambient = colors.aventurine,
+           diffuse = colors.aventurine,
+           specular = colors.teal,
+           shininess = 10)
+#
+#######################################
+#
+# a dark grey matte material
+#
+basalt = \
+  Material(ambient = colors.basalt,
+           diffuse = colors.basalt,
+           specular = colors.basalt,
+           shininess = 4)
+#
+#######################################
+#
+# this should use a metalic material
+#
+copper = \
+  Material(ambient = colors.copper,
+           diffuse = colors.copper,
+           specular = colors.yellow,
+           shininess = 5)
+#
+#######################################
+#
+# copper(II) sulfate crystal
+#
+copperSulfate = \
+  Material(ambient = colors.copperSulfate,
+           diffuse = colors.copperSulfate,
+           specular = colors.veryLightBlueGreen,
+           shininess = 10)
+#
+#######################################
+#
+# basic dark brown
+#
+darkWood = \
+  Material(ambient = colors.darkWood,
+           diffuse = colors.darkWood,
+           specular = colors.darkWood,
+           shininess = 0)
+#
+#######################################
+#
+# this should probably use a metalic material
+#
+pearl = \
+  Material(ambient = colors.white,
+           diffuse = colors.white,
+           specular = colors.lightPink,
+           shininess = 10)
+#
+#######################################
+#
+# a pink crystal
+#
+rhodonite = \
+  Material(ambient = colors.deepPink,
+           diffuse = colors.pink,
+           specular = colors.lightPink,
+           shininess = 8)
+#
+#######################################
+#
+# this needs to use a metalic material instead
+#
+stainlessSteel = \
+  Material(ambient = colors.stainlessSteel,
+           diffuse = colors.stainlessSteel,
+           specular = colors.white,
+           shininess = 9)
+#
+#######################################
+#
+# a very sharp red material with no specularity
+#
+velvetyRed = \
+  Material(ambient = colors.red,
+           diffuse = colors.red,
+           specular = colors.red,
+           shininess = 0)
+#
+#######################################
+#
+# delete this so it's not hanging around in soy.materials namespace
+#
+del(colors)
+#
+##############################################################################
+

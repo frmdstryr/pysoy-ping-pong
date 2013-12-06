@@ -1,0 +1,57 @@
+# PySoy's models.Model class
+#
+# Copyright (C) 2006,2007,2008,2009 PySoy Group
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program; if not, see http://www.gnu.org/licenses
+#
+# $Id: Model.pym 1393 2008-12-31 23:51:25Z ArcRiley $
+
+cdef class Model :
+  '''soy.models.Model
+
+    This is the base class for all renderable objects.
+
+    See dir(soy.models) for a list of other models.
+  '''
+
+  ############################################################################
+  #
+  # Python functions
+  #
+  
+  def __cinit__(self, *args, **keywords) :
+    self._mutex = py.PyThread_allocate_lock()
+
+
+  def __dealloc__(self) :
+    py.PyThread_free_lock(self._mutex)
+
+
+  def __repr__(self) :
+    cdef object _name
+    _name = self.__class__.__name__
+    return '<%s>' % _name
+
+
+  ############################################################################
+  #
+  # WindowLoop Functions
+  #
+
+  cdef void _render(self, soy.bodies.Body _body) :
+    return
+
+  cdef void _calcFogCoords(self, float _depth) nogil :
+    return
+

@@ -1,0 +1,21 @@
+# encoding: utf-8
+source = bld.path.ant_glob('*.gs')
+uselib = ['DBUS_GLIB', 'GEE', 'RSVG', 'LM', 'NICE', 'BLUEZ', 'GL', 'ODE', 'GTK']
+packages = ['config', 'gles-1.1', 'gee-1.0', 'cairo', 'librsvg-2.0',
+            'ode-0.11', 'soy', 'gtk+-3.0',
+            'posix','bluez', 'loudmouth-1.0', 'nice','libusb','dbus-glib-1']
+
+libsoy_gtk = bld(
+  features     = 'c cshlib',
+  name         = 'soy-gtk-1',
+  target       = 'soy-gtk',
+  pkg_name     = 'soy-gtk',
+  uselib       = uselib,
+  packages     = packages,
+  vapi_dirs    = ['../../vapi', '../../build/src'],
+  includes     = '../../include',
+  cflags       = ['-include', 'config.h', '-DGL_GLEXT_PROTOTYPES', '-g'],
+  source       = source,
+  vala_defines = bld.env.VALA_DEFINES
+)
+

@@ -1,0 +1,51 @@
+Team PySoy
+==========
+These are the the people, past and present, who have made PySoy possible.  
+
+New developers should add themselves to this list.
+
+
+Current Developers
+------------------
+Amaury Medeiros
+Arc Riley
+David Czech
+Eric Stein
+Jon Neal
+Juhani Åhman
+Fredrik Karlström
+Alex Light
+Liam Zebedee Edwards-Playne
+
+
+Past Developers
+---------------
+Angelo Theodorou
+Blaine Gilliam
+Buddha Buck
+Davy Wybiral
+Derek Rhodes
+Evan Cofsky
+Jaroslaw Tworek
+Jason Ward
+Jeremy Moles
+Kirk McDonald
+Mike Beckson
+Palle Raabjerg
+Nate Thompson
+Seth Thompson
+Shriphani Palakodety
+Tom Sidwick
+Zach Miller
+
+
+VAPI Bindings
+-------------
+
+
+Special Thanks
+--------------
+Google's Open Source Programs Office - for hosting Summer of Code every year 
+Leo Gentile - for donating an intel-based Mac Mini for OSX porting
+Peter Dobratz - for donating a Mac Radeon card, enabling faster OSX porting
+Richard "Doc" Kinne - for financial contributions early in the project
