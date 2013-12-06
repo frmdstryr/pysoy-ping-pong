@@ -5,6 +5,9 @@ Simple ping pong game written using a development version of [PySoy](http://www.
 Uses [PyUserInput](https://github.com/SavinaRoja/PyUserInput) for mouse and keyboard interaction as PySoy currently doesn't have it implemented.
 
 
+**Special thanks to all the great folks working on PySoy for making this possible!**
+
+
 ### Demo ###
 
 [Watch it action](http://www.youtube.com/watch?v=VYfN-gngqr0&feature=youtu.be)
